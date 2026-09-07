@@ -1,41 +1,20 @@
 import { Metadata } from "next"
 
-import FeaturedProducts from "@modules/home/components/featured-products"
+import CeramiCatalogue from "@modules/home/components/cerami-catalogue"
 import Hero from "@modules/home/components/hero"
-import { listCollections } from "@lib/data/collections"
-import { getRegion } from "@lib/data/regions"
 
 export const metadata: Metadata = {
-  title: "Cerami Mandy",
+  title: "Cerami Mandy | Cerâmica artesanal",
   description:
-    "A performant frontend ecommerce starter template with Next.js 15 and Medusa.",
+    "Peças de cerâmica autênticas, criativas e únicas, feitas à mão no Brasil.",
 }
 
-export default async function Home(props: {
-  params: Promise<{ countryCode: string }>
-}) {
-  const params = await props.params
-
-  const { countryCode } = params
-
-  const region = await getRegion(countryCode)
-
-  const { collections } = await listCollections({
-    fields: "id, handle, title",
-  })
-
-  if (!collections || !region) {
-    return null
-  }
-
+// ponytail: home é 100% estática/demo; não consulta o backend para não depender de catálogo real.
+export default function Home() {
   return (
     <>
       <Hero />
-      <div className="py-12">
-        <ul className="flex flex-col gap-x-6">
-          <FeaturedProducts collections={collections} region={region} />
-        </ul>
-      </div>
+      <CeramiCatalogue />
     </>
   )
 }
