@@ -7,8 +7,14 @@ set -eu
 
 export PGDATA=/var/lib/postgresql/data
 
+if [ "$(id -u)" = 0 ]; then
+  chown -R postgres:postgres "$PGDATA"
+  exec gosu postgres "$0" "$@"
+fi
+
 if [ ! -s "$PGDATA/PG_VERSION" ]; then
-  initdb -D "$PGDATA" --auth-local=trust --auth-host=trust
+  initdb -D "$PGDATA" --auth-local=trust --auth-host=scram-sha-256
+  printf '\nhost all all all scram-sha-256\n' >> "$PGDATA/pg_hba.conf"
   pg_ctl -D "$PGDATA" -o "-c listen_addresses='127.0.0.1'" -w start
   psql --username postgres --dbname postgres --set ON_ERROR_STOP=on \
     --set db_user="$POSTGRES_USER" --set db_password="$POSTGRES_PASSWORD" <<'SQL'

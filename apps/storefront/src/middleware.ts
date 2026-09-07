@@ -127,11 +127,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // if the url doesn't have the country, redirect to it
+  // Keep the LAN entry URL stable while serving the default country.
   const redirectPath =
     request.nextUrl.pathname === "/" ? "" : request.nextUrl.pathname
   const queryString = request.nextUrl.search || ""
   const redirectUrl = `${request.nextUrl.origin}/${country}${redirectPath}${queryString}`
+
+  if (request.nextUrl.pathname === "/") {
+    return NextResponse.rewrite(redirectUrl)
+  }
 
   return NextResponse.redirect(redirectUrl, 307)
 }
