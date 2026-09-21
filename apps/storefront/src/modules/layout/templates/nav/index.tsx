@@ -10,56 +10,69 @@ import SideMenu from "@modules/layout/components/side-menu"
 
 export default async function Nav() {
   const [regions, locales, currentLocale] = await Promise.all([
-    listRegions().then((regions: StoreRegion[]) => regions),
-    listLocales(),
-    getLocale(),
+    listRegions()
+      .then((regions: StoreRegion[]) => regions)
+      .catch(() => null),
+    listLocales().catch(() => null),
+    getLocale().catch(() => null),
   ])
 
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
-      <header className="relative h-16 mx-auto border-b duration-200 bg-white border-ui-border-base">
-        <nav className="content-container txt-xsmall-plus text-ui-fg-subtle flex items-center justify-between w-full h-full text-small-regular">
-          <div className="flex-1 basis-0 h-full flex items-center">
-            <div className="h-full">
-              <SideMenu regions={regions} locales={locales} currentLocale={currentLocale} />
-            </div>
+      {/* Barra de anúncios superior / Ticker tape */}
+      <div className="border-b border-[#010204] bg-[#010204] text-white py-2 px-4 text-[11px] font-bold uppercase tracking-widest text-center">
+        <span>FRETE GRÁTIS ACIMA DE R$ 250 • CERÂMICA 100% FEITA À MÃO NO BRASIL • PEÇAS ÚNICAS & LIMITADAS • ATELIÊ @MANDYELLOW.JPG</span>
+      </div>
+
+      {/* Header compartimentado wireframe */}
+      <header className="relative h-16 w-full border-b border-[#010204] bg-[#FFFDF9]">
+        <div className="w-full h-full flex items-stretch justify-between">
+          {/* Célula Esquerda: Menu */}
+          <div className="flex items-stretch border-r border-[#010204]">
+            <SideMenu regions={regions} locales={locales} currentLocale={currentLocale} />
           </div>
 
-          <div className="flex items-center h-full">
+          {/* Célula Central: Logo */}
+          <div className="flex items-center justify-center flex-1 px-4">
             <LocalizedClientLink
               href="/"
-              className="txt-compact-xlarge-plus hover:text-ui-fg-base normal-case"
+              className="text-base sm:text-xl font-extrabold uppercase tracking-widest text-[#010204] hover:opacity-80 transition-opacity"
               data-testid="nav-store-link"
             >
               Cerami Mandy
             </LocalizedClientLink>
           </div>
 
-          <div className="flex items-center gap-x-6 h-full flex-1 basis-0 justify-end">
-            <div className="hidden small:flex items-center gap-x-6 h-full">
+          {/* Célula Direita: Conta & Carrinho */}
+          <div className="flex items-stretch">
+            <div className="hidden sm:flex items-stretch border-l border-[#010204]">
               <LocalizedClientLink
-                className="hover:text-ui-fg-base"
+                className="h-full flex items-center px-6 text-xs font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors"
                 href="/account"
                 data-testid="nav-account-link"
               >
                 Conta
               </LocalizedClientLink>
             </div>
-            <Suspense
-              fallback={
-                <LocalizedClientLink
-                  className="hover:text-ui-fg-base flex gap-2"
-                  href="/cart"
-                  data-testid="nav-cart-link"
-                >
-                  Carrinho (0)
-                </LocalizedClientLink>
-              }
-            >
-              <CartButton />
-            </Suspense>
+            <div className="flex items-stretch border-l border-[#010204]">
+              <Suspense
+                fallback={
+                  <LocalizedClientLink
+                    className="h-full flex items-center px-6 text-xs font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors"
+                    href="/cart"
+                    data-testid="nav-cart-link"
+                  >
+                    Carrinho (0)
+                  </LocalizedClientLink>
+                }
+              >
+                <div className="h-full flex items-stretch text-xs font-bold uppercase tracking-wider text-[#010204] [&_a]:h-full [&_a]:flex [&_a]:items-center [&_a]:px-6 [&_a]:hover:bg-[#FFCB98]/30 [&_a]:transition-colors">
+                  <CartButton />
+                </div>
+              </Suspense>
+            </div>
           </div>
-        </nav>
+        </div>
       </header>
     </div>
   )

@@ -2,6 +2,14 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
+:root {
+  --cerami-black: #010204;
+  --cerami-orange: #FFAD40;
+  --cerami-coral: #E87978;
+  --cerami-peach: #FFCB98;
+  --cerami-cream: #FFFDF9;
+}
+
 @layer utilities {
   /* Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
@@ -56,6 +64,14 @@
 
   .contrast-btn {
     @apply px-4 py-2 border border-black rounded-full hover:bg-black hover:text-white transition-colors duration-200 ease-in;
+  }
+
+  .btn-wire {
+    @apply rounded-none border border-[#010204] bg-[#010204] text-white px-6 py-3 font-bold uppercase tracking-wider transition-colors hover:bg-white hover:text-[#010204];
+  }
+
+  .btn-wire-outline {
+    @apply rounded-none border border-[#010204] bg-transparent text-[#010204] px-6 py-3 font-bold uppercase tracking-wider transition-colors hover:bg-[#010204] hover:text-white;
   }
 
   .text-xsmall-regular {
