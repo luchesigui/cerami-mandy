@@ -3,6 +3,7 @@ import { PortableText, type PortableTextComponents } from "next-sanity"
 
 import { formatPrice } from "@/sanity/format"
 import { urlFor } from "@/sanity/image"
+import AddToBagButton from "@modules/bag/components/add-to-bag-button"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 import type {
@@ -148,15 +149,7 @@ const ProductTemplate = ({ product, related }: Props) => {
                 )}
               </div>
             )}
-            {/* ponytail: produtos do Sanity ainda não existem no Medusa; o botão só reflete o layout. */}
-          <button
-            type="button"
-            disabled
-            title={soldOut ? "Peça esgotada" : "Compra indisponível no momento"}
-            className="mt-5 self-start rounded-full bg-[#FCAB42] px-10 py-3.5 text-base font-bold uppercase text-[#13110C] disabled:cursor-not-allowed"
-          >
-            {soldOut ? "Esgotada" : "Comprar"}
-          </button>
+            <AddToBagButton productId={product._id} soldOut={soldOut} />
           </div>
         </div>
       </div>

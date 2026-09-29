@@ -159,9 +159,75 @@ export const product = defineType({
       ],
     }),
     defineField({
+      name: 'shipping',
+      title: 'Embalagem para frete',
+      type: 'object',
+      description:
+        'Peso e medidas da caixa já embalada, usados para calcular o frete. Obrigatório para peças ativas.',
+      options: { columns: 2 },
+      validation: (rule) =>
+        rule.custom((value, context) => {
+          const status = (context.document as { status?: string } | undefined)?.status
+          if (status !== 'active') return true
+          const shipping = value as Record<string, number | undefined> | undefined
+          const missing = ['weightGrams', 'heightCm', 'widthCm', 'lengthCm'].some(
+            (key) => !shipping?.[key],
+          )
+          return missing ? 'Preencha peso e medidas da embalagem para calcular o frete' : true
+        }),
+      fields: [
+        defineField({
+          name: 'weightGrams',
+          title: 'Peso (g)',
+          type: 'number',
+          validation: (rule) => rule.min(1).integer(),
+        }),
+        defineField({
+          name: 'heightCm',
+          title: 'Altura (cm)',
+          type: 'number',
+          validation: (rule) => rule.min(1),
+        }),
+        defineField({
+          name: 'widthCm',
+          title: 'Largura (cm)',
+          type: 'number',
+          validation: (rule) => rule.min(1),
+        }),
+        defineField({
+          name: 'lengthCm',
+          title: 'Comprimento (cm)',
+          type: 'number',
+          validation: (rule) => rule.min(1),
+        }),
+      ],
+    }),
+    defineField({
       name: 'sku',
       title: 'SKU',
       type: 'string',
+      description: 'Gerado automaticamente ao criar a peça (CM-003, CM-004...).',
+      initialValue: async (_params, { getClient }) => {
+        const skus = await getClient({ apiVersion: '2026-09-28' }).fetch<string[]>(
+          `*[_type == "product" && defined(sku)].sku`,
+        )
+        const highest = skus.reduce((max, sku) => {
+          // Also counts legacy SKUs such as CM-VASE-002.
+          const match = /^CM-(?:[A-Z]+-)?(\d+)$/.exec(sku)
+          return match ? Math.max(max, Number(match[1])) : max
+        }, 0)
+        return `CM-${String(highest + 1).padStart(3, '0')}`
+      },
+      validation: (rule) =>
+        rule.custom(async (value, { document, getClient }) => {
+          if (!value || !document) return true
+          const id = document._id.replace(/^drafts\./, '')
+          const duplicates = await getClient({ apiVersion: '2026-09-28' }).fetch<number>(
+            `count(*[_type == "product" && sku == $sku && !(_id in [$id, $draftId])])`,
+            { sku: value, id, draftId: `drafts.${id}` },
+          )
+          return duplicates > 0 ? 'Já existe outra peça com este SKU' : true
+        }),
     }),
     defineField({
       name: 'inventory',

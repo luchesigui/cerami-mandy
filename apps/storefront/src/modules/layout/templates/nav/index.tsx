@@ -1,11 +1,9 @@
-import { Suspense } from "react"
-
 import { listLocales } from "@lib/data/locales"
 import { getLocale } from "@lib/data/locale-actions"
 import { listRegions } from "@lib/data/regions"
 import { StoreRegion } from "@medusajs/types"
+import BagNavLink from "@modules/bag/components/bag-nav-link"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import CartButton from "@modules/layout/components/cart-button"
 import SideMenu from "@modules/layout/components/side-menu"
 
 export default async function Nav() {
@@ -37,21 +35,7 @@ export default async function Nav() {
               Conta
             </LocalizedClientLink>
             <div className="flex items-stretch sm:border-l sm:border-white/30">
-              <Suspense
-                fallback={
-                  <LocalizedClientLink
-                    className={linkClassName}
-                    href="/cart"
-                    data-testid="nav-cart-link"
-                  >
-                    Carrinho (0)
-                  </LocalizedClientLink>
-                }
-              >
-                <div className="h-full flex items-stretch text-sm uppercase text-white [&_a]:uppercase [&_a]:h-full [&_a]:flex [&_a]:items-center [&_a]:px-5 sm:[&_a]:px-6 [&_a]:hover:text-[#FCAB42] [&_a]:transition-colors">
-                  <CartButton />
-                </div>
-              </Suspense>
+              <BagNavLink className={linkClassName} />
             </div>
           </div>
         </nav>

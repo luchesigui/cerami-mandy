@@ -75,6 +75,12 @@ export type Product = {
     glaze?: string
     careInstructions?: string
   }
+  shipping?: {
+    weightGrams?: number
+    heightCm?: number
+    widthCm?: number
+    lengthCm?: number
+  }
   sku?: string
   inventory?: number
   status?: "draft" | "active" | "archived"
@@ -237,7 +243,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: AVAILABLE_PRODUCTS_QUERY
-// Query: *[_type == "product" && status == "active" && defined(slug.current) && inventory > 0] | order(_createdAt desc) {    _id,    title,    "slug": slug.current,    price,    badges,    inventory,    "image": images[0]  }
+// Query: *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0] | order(_createdAt desc) {    _id,    title,    "slug": slug.current,    price,    badges,    inventory,    "image": images[0]  }
 export type AVAILABLE_PRODUCTS_QUERY_RESULT = Array<{
   _id: string
   title: string | null
@@ -328,7 +334,7 @@ export type PRODUCT_BY_SLUG_QUERY_RESULT = {
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: RELATED_PRODUCTS_QUERY
-// Query: *[_type == "product" && status == "active" && defined(slug.current) && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {    _id,    title,    "slug": slug.current,    price,    badges,    inventory,    "image": images[0]  }
+// Query: *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {    _id,    title,    "slug": slug.current,    price,    badges,    inventory,    "image": images[0]  }
 export type RELATED_PRODUCTS_QUERY_RESULT = Array<{
   _id: string
   title: string | null
@@ -347,13 +353,40 @@ export type RELATED_PRODUCTS_QUERY_RESULT = Array<{
   } | null
 }>
 
+// Source: ../apps/storefront/src/sanity/queries.ts
+// Variable: BAG_PRODUCTS_QUERY
+// Query: *[_type == "product" && _id in $ids] {    _id,    title,    "slug": slug.current,    price,    "image": images[0],    "available": status == "active" && inventory > 0,    shipping  }
+export type BAG_PRODUCTS_QUERY_RESULT = Array<{
+  _id: string
+  title: string | null
+  slug: string | null
+  price: number | null
+  image: {
+    asset?: SanityImageAssetReference
+    media?: unknown
+    hotspot?: SanityImageHotspot
+    crop?: SanityImageCrop
+    alt?: string
+    _type: "image"
+    _key: string
+  } | null
+  available: boolean | false | null
+  shipping: {
+    weightGrams?: number
+    heightCm?: number
+    widthCm?: number
+    lengthCm?: number
+  } | null
+}>
+
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '\n  *[_type == "product" && status == "active" && defined(slug.current) && inventory > 0] | order(_createdAt desc) {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': AVAILABLE_PRODUCTS_QUERY_RESULT
+    '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0] | order(_createdAt desc) {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': AVAILABLE_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "product" && status == "active" && defined(slug.current) && inventory == 0] | order(_updatedAt desc) [0...6] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': SOLD_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "product" && status == "active" && slug.current == $slug][0] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    compareAtPrice,\n    badges,\n    images,\n    "categoryId": category._ref,\n    description,\n    "plainDescription": pt::text(description),\n    details,\n    inventory\n  }\n': PRODUCT_BY_SLUG_QUERY_RESULT
-    '\n  *[_type == "product" && status == "active" && defined(slug.current) && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': RELATED_PRODUCTS_QUERY_RESULT
+    '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': RELATED_PRODUCTS_QUERY_RESULT
+    '\n  *[_type == "product" && _id in $ids] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    "image": images[0],\n    "available": status == "active" && inventory > 0,\n    shipping\n  }\n': BAG_PRODUCTS_QUERY_RESULT
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

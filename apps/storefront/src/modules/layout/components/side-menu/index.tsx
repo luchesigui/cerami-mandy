@@ -16,7 +16,7 @@ const SideMenuItems = {
   Início: "/",
   Loja: "/store",
   Conta: "/account",
-  Carrinho: "/cart",
+  Sacola: "/sacola",
 }
 
 type SideMenuProps = {
