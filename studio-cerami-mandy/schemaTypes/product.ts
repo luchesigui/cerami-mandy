@@ -1,0 +1,203 @@
+import { defineArrayMember, defineField, defineType } from 'sanity'
+import { BasketIcon } from '@sanity/icons/Basket'
+
+export const product = defineType({
+  name: 'product',
+  title: 'Product',
+  type: 'document',
+  icon: BasketIcon,
+  fields: [
+    defineField({
+      name: 'title',
+      title: 'Title',
+      type: 'string',
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'slug',
+      title: 'Slug',
+      type: 'slug',
+      options: {
+        source: 'title',
+        maxLength: 96,
+      },
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'images',
+      title: 'Product Images',
+      type: 'array',
+      of: [
+        defineArrayMember({
+          type: 'image',
+          options: {
+            hotspot: true,
+          },
+          fields: [
+            defineField({
+              name: 'alt',
+              type: 'string',
+              title: 'Alternative Text',
+              validation: (rule) =>
+                rule.required().warning('Alt text is important for accessibility and SEO'),
+            }),
+          ],
+        }),
+      ],
+      validation: (rule) => rule.min(1).warning('Products should have at least one image'),
+    }),
+    defineField({
+      name: 'price',
+      title: 'Preço (R$)',
+      type: 'number',
+      validation: (rule) => rule.required().positive(),
+    }),
+    defineField({
+      name: 'compareAtPrice',
+      title: 'Preço original (R$)',
+      type: 'number',
+      description: 'Original price if the product is on sale',
+      validation: (rule) =>
+        rule.custom((compareAtPrice, context) => {
+          const doc = context.document as { price?: number } | undefined
+          if (compareAtPrice && doc?.price && compareAtPrice <= doc.price) {
+            return 'Compare at price should be higher than the current price'
+          }
+          return true
+        }),
+    }),
+    defineField({
+      name: 'badges',
+      title: 'Selos',
+      type: 'array',
+      of: [defineArrayMember({ type: 'string' })],
+      options: {
+        list: [
+          { title: 'Destaque', value: 'destaque' },
+          { title: 'Novidade', value: 'novidade' },
+        ],
+        layout: 'grid',
+      },
+    }),
+    defineField({
+      name: 'category',
+      title: 'Category',
+      type: 'reference',
+      to: [{ type: 'category' }],
+    }),
+    defineField({
+      name: 'description',
+      title: 'Description',
+      type: 'array',
+      of: [
+        defineArrayMember({
+          type: 'block',
+          styles: [
+            { title: 'Normal', value: 'normal' },
+            { title: 'Heading 3', value: 'h3' },
+            { title: 'Quote', value: 'blockquote' },
+          ],
+          lists: [{ title: 'Bullet', value: 'bullet' }],
+          marks: {
+            decorators: [
+              { title: 'Strong', value: 'strong' },
+              { title: 'Emphasis', value: 'em' },
+            ],
+            annotations: [
+              {
+                name: 'link',
+                type: 'object',
+                title: 'Link',
+                fields: [
+                  {
+                    name: 'href',
+                    type: 'url',
+                    title: 'URL',
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      ],
+    }),
+    defineField({
+      name: 'details',
+      title: 'Ceramic Details',
+      type: 'object',
+      fields: [
+        defineField({
+          name: 'material',
+          title: 'Material / Clay Body',
+          type: 'string',
+          placeholder: 'e.g., Stoneware, Porcelain, Terracotta',
+        }),
+        defineField({
+          name: 'dimensions',
+          title: 'Dimensions',
+          type: 'string',
+          placeholder: 'e.g., 10cm x 12cm',
+        }),
+        defineField({
+          name: 'weight',
+          title: 'Weight',
+          type: 'string',
+          placeholder: 'e.g., 350g',
+        }),
+        defineField({
+          name: 'glaze',
+          title: 'Glaze & Finish',
+          type: 'string',
+          placeholder: 'e.g., Matte speckled white glaze',
+        }),
+        defineField({
+          name: 'careInstructions',
+          title: 'Care Instructions',
+          type: 'string',
+          placeholder: 'e.g., Dishwasher and microwave safe; hand wash recommended',
+        }),
+      ],
+    }),
+    defineField({
+      name: 'sku',
+      title: 'SKU',
+      type: 'string',
+    }),
+    defineField({
+      name: 'inventory',
+      title: 'Inventory Count',
+      type: 'number',
+      initialValue: 0,
+      validation: (rule) => rule.min(0).integer(),
+    }),
+    defineField({
+      name: 'status',
+      title: 'Status',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'Draft', value: 'draft' },
+          { title: 'Active', value: 'active' },
+          { title: 'Archived', value: 'archived' },
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'active',
+    }),
+  ],
+  preview: {
+    select: {
+      title: 'title',
+      price: 'price',
+      media: 'images.0',
+      status: 'status',
+    },
+    prepare({ title, price, media, status }) {
+      return {
+        title,
+        subtitle: `${price != null ? `R$ ${price}` : 'No price'} • ${status || 'draft'}`,
+        media,
+      }
+    },
+  },
+})

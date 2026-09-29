@@ -1,175 +1,61 @@
-import { listCategories } from "@lib/data/categories"
-import { listCollections } from "@lib/data/collections"
+import Image from "next/image"
+
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
-export default async function Footer() {
-  const { collections } = await listCollections({
-    fields: "*products",
-  }).catch(() => ({ collections: [] }))
-  const productCategories = await listCategories().catch(() => [])
+const InstagramIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7" aria-hidden="true">
+    <rect x="2.5" y="2.5" width="19" height="19" rx="5" />
+    <circle cx="12" cy="12" r="4.25" />
+    <circle cx="17.5" cy="6.5" r="0.75" fill="currentColor" stroke="none" />
+  </svg>
+)
 
+const TikTokIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7" aria-hidden="true">
+    <path d="M16.6 2h-3.4v13.3a2.9 2.9 0 1 1-2.9-2.9c.3 0 .6 0 .9.1V9a6.3 6.3 0 1 0 5.4 6.3V8.6a7.8 7.8 0 0 0 4.4 1.4V6.6a4.4 4.4 0 0 1-4.4-4.6Z" />
+  </svg>
+)
+
+export default function Footer() {
   return (
-    <footer className="w-full border-t border-[#010204] bg-[#FFFDF9] text-[#010204]" data-store="footer">
-      {/* 1. Faixa de Redes Sociais Wireframe */}
-      <div className="w-full border-b border-[#010204] grid grid-cols-1 md:grid-cols-12 items-stretch">
-        <div className="md:col-span-4 p-4 sm:p-5 border-b md:border-b-0 md:border-r border-[#010204] flex items-center justify-between">
-          <span className="text-xs font-black uppercase tracking-widest text-[#010204]">
-            SIGA O ATELIÊ NO
+    <footer
+      className="w-full bg-[#FCAB42] text-[#13110C]"
+      data-store="footer"
+    >
+      <div className="flex items-center justify-between gap-6 px-6 py-6 sm:px-10">
+        <LocalizedClientLink href="/" aria-label="Cerami Mandy - início">
+          <Image
+            src="/cerami/wordmark.png"
+            alt="Cerami Mandy"
+            width={495}
+            height={242}
+            className="h-auto w-[110px] sm:w-[126px]"
+          />
+        </LocalizedClientLink>
+
+        <div className="flex items-center gap-3 sm:gap-4">
+          <span className="text-xs font-bold uppercase tracking-wide sm:text-sm">
+            Me siga no
           </span>
-          <span className="text-xs font-bold text-[#E87978]">✦</span>
-        </div>
-        <div className="md:col-span-8 grid grid-cols-2 sm:grid-cols-3 divide-x divide-[#010204]">
           <a
             href="https://www.instagram.com/cerami.mandy/"
             target="_blank"
             rel="noreferrer"
-            className="p-4 sm:p-5 text-xs font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors flex items-center justify-between"
+            aria-label="Instagram"
+            className="transition-opacity hover:opacity-70"
           >
-            <span>Instagram</span>
-            <span>↗</span>
+            <InstagramIcon />
           </a>
           <a
-            href="https://www.instagram.com/mandyellow.jpg/"
+            href="https://www.tiktok.com/"
             target="_blank"
             rel="noreferrer"
-            className="p-4 sm:p-5 text-xs font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors flex items-center justify-between"
+            aria-label="TikTok"
+            className="transition-opacity hover:opacity-70"
           >
-            <span>@mandyellow</span>
-            <span>↗</span>
-          </a>
-          <a
-            href="https://tiktok.com"
-            target="_blank"
-            rel="noreferrer"
-            className="p-4 sm:p-5 text-xs font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors flex items-center justify-between col-span-2 sm:col-span-1"
-          >
-            <span>TikTok</span>
-            <span>↗</span>
+            <TikTokIcon />
           </a>
         </div>
-      </div>
-
-      {/* 2. Grid Principal do Rodapé */}
-      <div className="w-full grid grid-cols-1 md:grid-cols-12 items-stretch border-b border-[#010204]">
-        {/* Coluna 1: Newsletter */}
-        <div className="md:col-span-6 p-8 sm:p-12 border-b md:border-b-0 md:border-r border-[#010204] flex flex-col justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-[#E87978] uppercase tracking-widest block mb-2">
-              [ CLUBE DO FORNO ]
-            </span>
-            <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-[#010204] mb-4">
-              Receba avisos de novas queimas
-            </h3>
-            <p className="text-sm text-[#010204]/80 font-medium mb-6 leading-relaxed max-w-md">
-              Nossas peças são feitas em pequenos lotes e esgotam rápido. Cadastre seu e-mail para
-              saber primeiro dos novos drops e reposições.
-            </p>
-          </div>
-
-          <form
-            onSubmit={undefined}
-            className="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-0 max-w-md"
-          >
-            <input
-              type="email"
-              placeholder="Seu melhor e-mail..."
-              className="flex-1 rounded-none border border-[#010204] bg-white px-4 py-3 text-xs text-[#010204] placeholder:text-[#010204]/40 focus:outline-none focus:ring-1 focus:ring-[#010204]"
-              required
-            />
-            <button
-              type="submit"
-              className="rounded-none border border-[#010204] sm:border-l-0 bg-[#010204] text-white px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-[#010204] transition-colors"
-            >
-              Assinar
-            </button>
-          </form>
-        </div>
-
-        {/* Coluna 2: Categorias & Coleções */}
-        <div className="md:col-span-3 p-8 border-b md:border-b-0 md:border-r border-[#010204] flex flex-col">
-          <span className="text-xs font-black uppercase tracking-widest text-[#010204] mb-6 pb-2 border-b border-[#010204]/20">
-            Navegação
-          </span>
-          <ul className="flex flex-col gap-y-3 text-xs font-bold uppercase tracking-wider text-[#010204]">
-            <li>
-              <LocalizedClientLink href="/#catalogo" className="hover:text-[#E87978] transition-colors">
-                Lançamentos da Queima
-              </LocalizedClientLink>
-            </li>
-            <li>
-              <LocalizedClientLink href="/mock/caneca-duo-carinhas" className="hover:text-[#E87978] transition-colors">
-                Coleção Carinhas
-              </LocalizedClientLink>
-            </li>
-            <li>
-              <LocalizedClientLink href="/mock/vasilha-alice" className="hover:text-[#E87978] transition-colors">
-                Vasilhas & Pratos
-              </LocalizedClientLink>
-            </li>
-            {collections && collections.slice(0, 3).map((c) => (
-              <li key={c.id}>
-                <LocalizedClientLink
-                  href={`/collections/${c.handle}`}
-                  className="hover:text-[#E87978] transition-colors"
-                >
-                  {c.title}
-                </LocalizedClientLink>
-              </li>
-            ))}
-            {productCategories && productCategories.slice(0, 3).map((cat) => (
-              <li key={cat.id}>
-                <LocalizedClientLink
-                  href={`/categories/${cat.handle}`}
-                  className="hover:text-[#E87978] transition-colors"
-                >
-                  {cat.name}
-                </LocalizedClientLink>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Coluna 3: Ateliê & Ajuda */}
-        <div className="md:col-span-3 p-8 flex flex-col">
-          <span className="text-xs font-black uppercase tracking-widest text-[#010204] mb-6 pb-2 border-b border-[#010204]/20">
-            Ateliê
-          </span>
-          <ul className="flex flex-col gap-y-3 text-xs font-bold uppercase tracking-wider text-[#010204]">
-            <li>
-              <a
-                href="https://www.instagram.com/cerami.mandy/"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-[#E87978] transition-colors"
-              >
-                Sobre @mandyellow.jpg
-              </a>
-            </li>
-            <li>
-              <LocalizedClientLink href="/store" className="hover:text-[#E87978] transition-colors">
-                Loja Completa
-              </LocalizedClientLink>
-            </li>
-            <li>
-              <LocalizedClientLink href="/account" className="hover:text-[#E87978] transition-colors">
-                Minha Conta
-              </LocalizedClientLink>
-            </li>
-            <li>
-              <LocalizedClientLink href="/cart" className="hover:text-[#E87978] transition-colors">
-                Carrinho
-              </LocalizedClientLink>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* 3. Barra de Copyright & Informações Legais */}
-      <div className="w-full py-6 px-6 sm:px-10 flex flex-col sm:flex-row items-center justify-between text-xs font-bold uppercase tracking-wider text-[#010204]/70 gap-y-2">
-        <span>© {new Date().getFullYear()} CERAMI MANDY. TODOS OS DIREITOS RESERVADOS.</span>
-        <span className="text-[11px] font-semibold text-[#010204]/50">
-          DESIGN WIREFRAME AUTORAL • FEITO COM AMOR NO BRASIL
-        </span>
       </div>
     </footer>
   )

@@ -57,6 +57,25 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           </Suspense>
         </div>
       </div>
+      <section className="border-t border-[#13110C]/10 bg-white px-6 py-12 lg:px-12 xl:px-16">
+        <div className="mx-auto max-w-[1440px]">
+          <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-[#13110C]">
+            INFORMAÇÕES ADICIONAIS
+          </h2>
+          <div className="max-w-4xl space-y-4 text-sm leading-relaxed text-[#13110C]">
+            <p>
+              <strong className="font-bold">✨ 100% Modelada e Pintada à Mão:</strong>{" "}
+              Da modelagem inicial de cada curva aos detalhes minuciosos da pintura, tudo foi feito manualmente. É uma escultura utilitária criada sem moldes industriais — o que significa formas orgânicas, personalidade viva e a certeza de que é uma peça absolutamente única no mundo, assim como você!
+            </p>
+            <p>
+              <strong className="font-bold">Material:</strong> Cerâmica de alta temperatura.
+            </p>
+            <p>
+              <strong className="font-bold">Cuidados:</strong> Para conservar a peça, lave com água, sabão neutro e esponja macia, evitando o uso de produtos abrasivos. Pode ir na máquina de lavar e no microondas.
+            </p>
+          </div>
+        </div>
+      </section>
       <div
         className="content-container my-16 small:my-32"
         data-testid="related-products-container"

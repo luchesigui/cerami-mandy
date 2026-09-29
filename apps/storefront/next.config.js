@@ -13,6 +13,7 @@ const S3_PATHNAME = process.env.MEDUSA_CLOUD_S3_PATHNAME
  */
 const nextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ["mac-mini", "mac-mini.local", "192.168.1.235"],
   logging: {
     fetches: {
       fullUrl: true,
@@ -30,6 +31,10 @@ const nextConfig = {
       {
         protocol: "http",
         hostname: "localhost",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.sanity.io",
       },
       {
         protocol: "https",

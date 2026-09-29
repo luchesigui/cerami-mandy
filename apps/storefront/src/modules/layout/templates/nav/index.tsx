@@ -17,48 +17,30 @@ export default async function Nav() {
     getLocale().catch(() => null),
   ])
 
+  const linkClassName =
+    "h-full flex items-center px-5 sm:px-6 text-sm uppercase text-white hover:text-[#FCAB42] transition-colors"
+
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
-      {/* Barra de anúncios superior / Ticker tape */}
-      <div className="border-b border-[#010204] bg-[#010204] text-white py-2 px-4 text-[11px] font-bold uppercase tracking-widest text-center">
-        <span>FRETE GRÁTIS ACIMA DE R$ 250 • CERÂMICA 100% FEITA À MÃO NO BRASIL • PEÇAS ÚNICAS & LIMITADAS • ATELIÊ @MANDYELLOW.JPG</span>
-      </div>
-
-      {/* Header compartimentado wireframe */}
-      <header className="relative h-16 w-full border-b border-[#010204] bg-[#FFFDF9]">
-        <div className="w-full h-full flex items-stretch justify-between">
-          {/* Célula Esquerda: Menu */}
-          <div className="flex items-stretch border-r border-[#010204]">
+      <header className="relative h-[50px] w-full bg-[#13110C]">
+        <nav className="h-full flex items-stretch justify-between px-2 sm:px-4">
+          <div className="flex items-stretch">
             <SideMenu regions={regions} locales={locales} currentLocale={currentLocale} />
           </div>
 
-          {/* Célula Central: Logo */}
-          <div className="flex items-center justify-center flex-1 px-4">
+          <div className="flex items-stretch py-[5px]">
             <LocalizedClientLink
-              href="/"
-              className="text-base sm:text-xl font-extrabold uppercase tracking-widest text-[#010204] hover:opacity-80 transition-opacity"
-              data-testid="nav-store-link"
+              className={`hidden sm:flex ${linkClassName}`}
+              href="/account"
+              data-testid="nav-account-link"
             >
-              Cerami Mandy
+              Conta
             </LocalizedClientLink>
-          </div>
-
-          {/* Célula Direita: Conta & Carrinho */}
-          <div className="flex items-stretch">
-            <div className="hidden sm:flex items-stretch border-l border-[#010204]">
-              <LocalizedClientLink
-                className="h-full flex items-center px-6 text-xs font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors"
-                href="/account"
-                data-testid="nav-account-link"
-              >
-                Conta
-              </LocalizedClientLink>
-            </div>
-            <div className="flex items-stretch border-l border-[#010204]">
+            <div className="flex items-stretch sm:border-l sm:border-white/30">
               <Suspense
                 fallback={
                   <LocalizedClientLink
-                    className="h-full flex items-center px-6 text-xs font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors"
+                    className={linkClassName}
                     href="/cart"
                     data-testid="nav-cart-link"
                   >
@@ -66,13 +48,13 @@ export default async function Nav() {
                   </LocalizedClientLink>
                 }
               >
-                <div className="h-full flex items-stretch text-xs font-bold uppercase tracking-wider text-[#010204] [&_a]:h-full [&_a]:flex [&_a]:items-center [&_a]:px-6 [&_a]:hover:bg-[#FFCB98]/30 [&_a]:transition-colors">
+                <div className="h-full flex items-stretch text-sm uppercase text-white [&_a]:uppercase [&_a]:h-full [&_a]:flex [&_a]:items-center [&_a]:px-5 sm:[&_a]:px-6 [&_a]:hover:text-[#FCAB42] [&_a]:transition-colors">
                   <CartButton />
                 </div>
               </Suspense>
             </div>
           </div>
-        </div>
+        </nav>
       </header>
     </div>
   )
