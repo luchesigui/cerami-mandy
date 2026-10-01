@@ -1,34 +1,22 @@
 "use client"
 
 import { Popover, PopoverPanel, Transition } from "@headlessui/react"
-import useToggleState from "@lib/hooks/use-toggle-state"
-import { ArrowRightMini, XMark } from "@medusajs/icons"
-import { HttpTypes } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import { Text, clx } from "@modules/common/components/ui"
 import { Fragment } from "react"
-import CountrySelect from "../country-select"
-import LanguageSelect from "../language-select"
-import { Locale } from "@lib/data/locales"
-
 
 const SideMenuItems = {
   Início: "/",
-  Loja: "/store",
-  Conta: "/account",
+  Peças: "/#catalogo",
   Sacola: "/sacola",
 }
 
-type SideMenuProps = {
-  regions: HttpTypes.StoreRegion[] | null
-  locales: Locale[] | null
-  currentLocale: string | null
-}
+const CloseIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5" aria-hidden="true">
+    <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
+  </svg>
+)
 
-const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
-  const countryToggleState = useToggleState()
-  const languageToggleState = useToggleState()
-
+const SideMenu = () => {
   return (
     <div className="h-full">
       <div className="flex items-center h-full">
@@ -74,7 +62,7 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
                           className="text-[#010204] hover:opacity-70 transition-opacity p-1"
                           aria-label="Fechar menu"
                         >
-                          <XMark />
+                          <CloseIcon />
                         </button>
                       </div>
 
@@ -99,46 +87,9 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
 
                     {/* Rodapé do menu lateral */}
                     <div className="flex flex-col gap-y-4 p-6 border-t border-[#010204] bg-[#FFFDF9] text-xs">
-                      {!!locales?.length && (
-                        <div
-                          className="flex justify-between items-center py-2 border-b border-[#010204]/20"
-                          onMouseEnter={languageToggleState.open}
-                          onMouseLeave={languageToggleState.close}
-                        >
-                          <LanguageSelect
-                            toggleState={languageToggleState}
-                            locales={locales}
-                            currentLocale={currentLocale}
-                          />
-                          <ArrowRightMini
-                            className={clx(
-                              "transition-transform duration-150",
-                              languageToggleState.state ? "-rotate-90" : ""
-                            )}
-                          />
-                        </div>
-                      )}
-                      <div
-                        className="flex justify-between items-center py-2 border-b border-[#010204]/20"
-                        onMouseEnter={countryToggleState.open}
-                        onMouseLeave={countryToggleState.close}
-                      >
-                        {regions && (
-                          <CountrySelect
-                            toggleState={countryToggleState}
-                            regions={regions}
-                          />
-                        )}
-                        <ArrowRightMini
-                          className={clx(
-                            "transition-transform duration-150",
-                            countryToggleState.state ? "-rotate-90" : ""
-                          )}
-                        />
-                      </div>
-                      <Text className="txt-compact-small text-[#010204]/60 pt-2">
+                      <p className="text-xs text-[#010204]/60 pt-2">
                         © {new Date().getFullYear()} Cerami Mandy. Todos os direitos reservados.
-                      </Text>
+                      </p>
                     </div>
                   </div>
                 </PopoverPanel>

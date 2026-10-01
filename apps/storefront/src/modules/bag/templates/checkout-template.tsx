@@ -1,6 +1,5 @@
 "use client"
 
-import { useParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 import {
@@ -179,7 +178,6 @@ const CheckoutTemplate = () => {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [touched, setTouched] = useState<Partial<Record<keyof CustomerForm, boolean>>>({})
   const [attemptedSubmit, setAttemptedSubmit] = useState(false)
-  const { countryCode } = useParams<{ countryCode: string }>()
 
   useEffect(() => {
     if (!bag.hydrated) return
@@ -325,7 +323,6 @@ const CheckoutTemplate = () => {
           },
           productIds: bag.ids,
           shippingServiceId: bag.shipping.id,
-          countryCode,
         }),
       })
       const data = (await res.json()) as {
@@ -342,7 +339,7 @@ const CheckoutTemplate = () => {
       }
       // Straight to InfinitePay; the order page is where it sends the customer back.
       const token = encodeURIComponent(data.accessToken)
-      const orderPage = `/${countryCode}/pedido/${data.orderId}`
+      const orderPage = `/pedido/${data.orderId}`
       window.location.assign(
         `/api/pedidos/${data.orderId}/pagar?t=${token}&back=${encodeURIComponent(orderPage)}`
       )

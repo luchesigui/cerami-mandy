@@ -1,20 +1,7 @@
-import { listLocales } from "@lib/data/locales"
-import { getLocale } from "@lib/data/locale-actions"
-import { listRegions } from "@lib/data/regions"
-import { StoreRegion } from "@medusajs/types"
 import BagNavLink from "@modules/bag/components/bag-nav-link"
-import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import SideMenu from "@modules/layout/components/side-menu"
 
-export default async function Nav() {
-  const [regions, locales, currentLocale] = await Promise.all([
-    listRegions()
-      .then((regions: StoreRegion[]) => regions)
-      .catch(() => null),
-    listLocales().catch(() => null),
-    getLocale().catch(() => null),
-  ])
-
+export default function Nav() {
   const linkClassName =
     "h-full flex items-center px-5 sm:px-6 text-sm uppercase text-white hover:text-[#FCAB42] transition-colors"
 
@@ -23,20 +10,11 @@ export default async function Nav() {
       <header className="relative h-[50px] w-full bg-[#13110C]">
         <nav className="h-full flex items-stretch justify-between px-2 sm:px-4">
           <div className="flex items-stretch">
-            <SideMenu regions={regions} locales={locales} currentLocale={currentLocale} />
+            <SideMenu />
           </div>
 
           <div className="flex items-stretch py-[5px]">
-            <LocalizedClientLink
-              className={`hidden sm:flex ${linkClassName}`}
-              href="/account"
-              data-testid="nav-account-link"
-            >
-              Conta
-            </LocalizedClientLink>
-            <div className="flex items-stretch sm:border-l sm:border-white/30">
-              <BagNavLink className={linkClassName} />
-            </div>
+            <BagNavLink className={linkClassName} />
           </div>
         </nav>
       </header>

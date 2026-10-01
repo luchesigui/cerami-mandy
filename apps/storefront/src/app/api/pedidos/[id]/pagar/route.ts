@@ -24,7 +24,7 @@ export async function GET(
   }
 
   // Expired or already paid: back to the order page, which explains the state.
-  const orderPage = /^\/[a-z]{2}\/pedido\/[0-9a-f-]{36}$/.test(back)
+  const orderPage = /^\/pedido\/[0-9a-f-]{36}$/.test(back)
     ? back
     : `/pedido/${id}`
   return NextResponse.redirect(

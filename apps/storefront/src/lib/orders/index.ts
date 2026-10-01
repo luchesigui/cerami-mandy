@@ -67,7 +67,6 @@ export type CheckoutInput = {
   }
   productIds: string[]
   shippingServiceId: number
-  countryCode: string
 }
 
 const str = (value: unknown, max = 200) =>
@@ -101,7 +100,6 @@ export function parseCheckoutInput(body: unknown): CheckoutInput {
         )
       : [],
     shippingServiceId: Number(b.shippingServiceId),
-    countryCode: /^[a-z]{2}$/.test(str(b.countryCode, 2)) ? str(b.countryCode, 2) : "br",
   }
 
   const problems = [
@@ -304,7 +302,7 @@ export async function createOrder(input: CheckoutInput) {
         number: input.address.number,
         complement: input.address.complement,
       },
-      redirectUrl: `${baseUrl}/${input.countryCode}/pedido/${publicId}?t=${accessToken}`,
+      redirectUrl: `${baseUrl}/pedido/${publicId}?t=${accessToken}`,
       // InfinitePay can only reach a public https URL; locally the return page confirms.
       webhookUrl:
         baseUrl.startsWith("https://") && webhookSecret

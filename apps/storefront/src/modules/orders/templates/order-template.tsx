@@ -1,6 +1,6 @@
 "use client"
 
-import { useParams, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 
 import type { PublicOrder } from "@lib/orders"
@@ -79,7 +79,6 @@ const Summary = ({ order }: { order: PublicOrder }) => {
 
 const OrderTemplate = ({ orderId, token }: Props) => {
   const { clear } = useBag()
-  const { countryCode } = useParams<{ countryCode: string }>()
   const searchParams = useSearchParams()
   const [order, setOrder] = useState<PublicOrder | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -98,7 +97,7 @@ const OrderTemplate = ({ orderId, token }: Props) => {
   }`
   const payUrl = `/api/pedidos/${orderId}/pagar?t=${encodeURIComponent(
     token
-  )}&back=${encodeURIComponent(`/${countryCode}/pedido/${orderId}`)}`
+  )}&back=${encodeURIComponent(`/pedido/${orderId}`)}`
 
   const load = useCallback(async () => {
     const res = await fetch(endpoint, { cache: "no-store" })
