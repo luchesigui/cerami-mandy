@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     "Peças de cerâmica autênticas, criativas e únicas, feitas à mão no Brasil por @mandyellow.jpg.",
 }
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export default function Home() {
   return (
     <>

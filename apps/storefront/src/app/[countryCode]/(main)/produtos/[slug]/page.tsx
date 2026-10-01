@@ -9,6 +9,9 @@ import {
 } from "@/sanity/queries"
 import ProductTemplate from "@modules/home/components/cerami-catalogue/product-template"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 type Props = {
   params: Promise<{ countryCode: string; slug: string }>
 }
