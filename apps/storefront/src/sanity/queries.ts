@@ -1,10 +1,14 @@
 import { defineQuery } from "next-sanity"
 
+// Shown in the storefront.
+const LISTED = `status == "active" && inventory > 0`
+// Held by a pending Pix payment (see apps/storefront/src/lib/orders).
+const RESERVED = `defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())`
 // Single source of truth for "can be bought right now".
-const AVAILABLE = `status == "active" && inventory > 0`
+const AVAILABLE = `${LISTED} && !(${RESERVED})`
 
 export const AVAILABLE_PRODUCTS_QUERY = defineQuery(`
-  *[_type == "product" && defined(slug.current) && ${AVAILABLE}] | order(_createdAt desc) {
+  *[_type == "product" && defined(slug.current) && ${LISTED}] | order(_createdAt desc) {
     _id,
     title,
     "slug": slug.current,
@@ -40,12 +44,13 @@ export const PRODUCT_BY_SLUG_QUERY = defineQuery(`
     description,
     "plainDescription": pt::text(description),
     details,
-    inventory
+    inventory,
+    "reserved": ${RESERVED}
   }
 `)
 
 export const RELATED_PRODUCTS_QUERY = defineQuery(`
-  *[_type == "product" && defined(slug.current) && ${AVAILABLE} && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {
+  *[_type == "product" && defined(slug.current) && ${LISTED} && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {
     _id,
     title,
     "slug": slug.current,
@@ -64,6 +69,34 @@ export const BAG_PRODUCTS_QUERY = defineQuery(`
     price,
     "image": images[0],
     "available": ${AVAILABLE},
-    shipping
+    "reserved": ${LISTED} && ${RESERVED},
+    shipping,
+    _rev
   }
+`)
+
+const ORDER_FIELDS = `
+  _id,
+  _rev,
+  number,
+  status,
+  accessToken,
+  customer,
+  address,
+  items[] { "productId": product._ref, title, price },
+  shipping,
+  subtotal,
+  shippingTotal,
+  total,
+  payment,
+  processedEvents,
+  createdAt
+`
+
+export const ORDER_BY_ID_QUERY = defineQuery(`
+  *[_type == "order" && _id == $id][0] { ${ORDER_FIELDS} }
+`)
+
+export const ORDER_BY_CHARGE_QUERY = defineQuery(`
+  *[_type == "order" && payment.chargeId == $chargeId][0] { ${ORDER_FIELDS} }
 `)

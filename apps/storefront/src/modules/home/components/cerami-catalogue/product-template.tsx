@@ -149,7 +149,11 @@ const ProductTemplate = ({ product, related }: Props) => {
                 )}
               </div>
             )}
-            <AddToBagButton productId={product._id} soldOut={soldOut} />
+            <AddToBagButton
+            productId={product._id}
+            soldOut={soldOut}
+            reserved={!!product.reserved}
+          />
           </div>
         </div>
       </div>

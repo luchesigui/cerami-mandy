@@ -250,6 +250,10 @@ export const product = defineType({
       },
       initialValue: 'active',
     }),
+    // Managed by the storefront checkout; hidden from editors.
+    defineField({ name: 'reservedUntil', type: 'datetime', hidden: true, readOnly: true }),
+    defineField({ name: 'reservedBy', type: 'string', hidden: true, readOnly: true }),
+    defineField({ name: 'soldAt', title: 'Vendida em', type: 'datetime', readOnly: true }),
   ],
   preview: {
     select: {

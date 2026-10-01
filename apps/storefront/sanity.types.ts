@@ -15,6 +15,74 @@
 export declare const internalGroqTypeReferenceTo: unique symbol
 
 // Source: schema.json
+export type ProductReference = {
+  _ref: string
+  _type: "reference"
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: "product"
+}
+
+export type Order = {
+  _id: string
+  _type: "order"
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  number?: string
+  status?:
+    | "aguardando_pagamento"
+    | "pago"
+    | "enviado"
+    | "entregue"
+    | "expirado"
+    | "cancelado"
+  trackingCode?: string
+  customer?: {
+    name?: string
+    email?: string
+    phone?: string
+    cpf?: string
+  }
+  address?: {
+    cep?: string
+    street?: string
+    number?: string
+    complement?: string
+    neighborhood?: string
+    city?: string
+    state?: string
+  }
+  items?: Array<{
+    product?: ProductReference
+    title?: string
+    price?: number
+    _type: "orderItem"
+    _key: string
+  }>
+  shipping?: {
+    serviceId?: number
+    company?: string
+    name?: string
+    price?: number
+    deliveryDays?: number
+  }
+  subtotal?: number
+  shippingTotal?: number
+  total?: number
+  payment?: {
+    provider?: string
+    chargeId?: string
+    brCode?: string
+    brCodeBase64?: string
+    expiresAt?: string
+    paidAt?: string
+    devMode?: boolean
+  }
+  processedEvents?: Array<string>
+  accessToken?: string
+  createdAt?: string
+}
+
 export type SanityImageAssetReference = {
   _ref: string
   _type: "reference"
@@ -84,6 +152,9 @@ export type Product = {
   sku?: string
   inventory?: number
   status?: "draft" | "active" | "archived"
+  reservedUntil?: string
+  reservedBy?: string
+  soldAt?: string
 }
 
 export type SanityImageCrop = {
@@ -225,6 +296,8 @@ export type Geopoint = {
 }
 
 export type AllSanitySchemaTypes =
+  | ProductReference
+  | Order
   | SanityImageAssetReference
   | CategoryReference
   | Product
@@ -285,7 +358,7 @@ export type SOLD_PRODUCTS_QUERY_RESULT = Array<{
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: PRODUCT_BY_SLUG_QUERY
-// Query: *[_type == "product" && status == "active" && slug.current == $slug][0] {    _id,    title,    "slug": slug.current,    price,    compareAtPrice,    badges,    images,    "categoryId": category._ref,    description,    "plainDescription": pt::text(description),    details,    inventory  }
+// Query: *[_type == "product" && status == "active" && slug.current == $slug][0] {    _id,    title,    "slug": slug.current,    price,    compareAtPrice,    badges,    images,    "categoryId": category._ref,    description,    "plainDescription": pt::text(description),    details,    inventory,    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())  }
 export type PRODUCT_BY_SLUG_QUERY_RESULT = {
   _id: string
   title: string | null
@@ -330,6 +403,7 @@ export type PRODUCT_BY_SLUG_QUERY_RESULT = {
     careInstructions?: string
   } | null
   inventory: number | null
+  reserved: boolean | false | null
 } | null
 
 // Source: ../apps/storefront/src/sanity/queries.ts
@@ -355,7 +429,7 @@ export type RELATED_PRODUCTS_QUERY_RESULT = Array<{
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: BAG_PRODUCTS_QUERY
-// Query: *[_type == "product" && _id in $ids] {    _id,    title,    "slug": slug.current,    price,    "image": images[0],    "available": status == "active" && inventory > 0,    shipping  }
+// Query: *[_type == "product" && _id in $ids] {    _id,    title,    "slug": slug.current,    price,    "image": images[0],    "available": status == "active" && inventory > 0 && !(defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())),    "reserved": status == "active" && inventory > 0 && defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),    shipping,    _rev  }
 export type BAG_PRODUCTS_QUERY_RESULT = Array<{
   _id: string
   title: string | null
@@ -371,22 +445,144 @@ export type BAG_PRODUCTS_QUERY_RESULT = Array<{
     _key: string
   } | null
   available: boolean | false | null
+  reserved: boolean | false | null
   shipping: {
     weightGrams?: number
     heightCm?: number
     widthCm?: number
     lengthCm?: number
   } | null
+  _rev: string
 }>
+
+// Source: ../apps/storefront/src/sanity/queries.ts
+// Variable: ORDER_BY_ID_QUERY
+// Query: *[_type == "order" && _id == $id][0] {   _id,  _rev,  number,  status,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt }
+export type ORDER_BY_ID_QUERY_RESULT = {
+  _id: string
+  _rev: string
+  number: string | null
+  status:
+    | "aguardando_pagamento"
+    | "cancelado"
+    | "entregue"
+    | "enviado"
+    | "expirado"
+    | "pago"
+    | null
+  accessToken: string | null
+  customer: {
+    name?: string
+    email?: string
+    phone?: string
+    cpf?: string
+  } | null
+  address: {
+    cep?: string
+    street?: string
+    number?: string
+    complement?: string
+    neighborhood?: string
+    city?: string
+    state?: string
+  } | null
+  items: Array<{
+    productId: string | null
+    title: string | null
+    price: number | null
+  }> | null
+  shipping: {
+    serviceId?: number
+    company?: string
+    name?: string
+    price?: number
+    deliveryDays?: number
+  } | null
+  subtotal: number | null
+  shippingTotal: number | null
+  total: number | null
+  payment: {
+    provider?: string
+    chargeId?: string
+    brCode?: string
+    brCodeBase64?: string
+    expiresAt?: string
+    paidAt?: string
+    devMode?: boolean
+  } | null
+  processedEvents: Array<string> | null
+  createdAt: string | null
+} | null
+
+// Source: ../apps/storefront/src/sanity/queries.ts
+// Variable: ORDER_BY_CHARGE_QUERY
+// Query: *[_type == "order" && payment.chargeId == $chargeId][0] {   _id,  _rev,  number,  status,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt }
+export type ORDER_BY_CHARGE_QUERY_RESULT = {
+  _id: string
+  _rev: string
+  number: string | null
+  status:
+    | "aguardando_pagamento"
+    | "cancelado"
+    | "entregue"
+    | "enviado"
+    | "expirado"
+    | "pago"
+    | null
+  accessToken: string | null
+  customer: {
+    name?: string
+    email?: string
+    phone?: string
+    cpf?: string
+  } | null
+  address: {
+    cep?: string
+    street?: string
+    number?: string
+    complement?: string
+    neighborhood?: string
+    city?: string
+    state?: string
+  } | null
+  items: Array<{
+    productId: string | null
+    title: string | null
+    price: number | null
+  }> | null
+  shipping: {
+    serviceId?: number
+    company?: string
+    name?: string
+    price?: number
+    deliveryDays?: number
+  } | null
+  subtotal: number | null
+  shippingTotal: number | null
+  total: number | null
+  payment: {
+    provider?: string
+    chargeId?: string
+    brCode?: string
+    brCodeBase64?: string
+    expiresAt?: string
+    paidAt?: string
+    devMode?: boolean
+  } | null
+  processedEvents: Array<string> | null
+  createdAt: string | null
+} | null
 
 // Query TypeMap
 declare global {
   interface SanityQueries {
     '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0] | order(_createdAt desc) {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': AVAILABLE_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "product" && status == "active" && defined(slug.current) && inventory == 0] | order(_updatedAt desc) [0...6] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': SOLD_PRODUCTS_QUERY_RESULT
-    '\n  *[_type == "product" && status == "active" && slug.current == $slug][0] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    compareAtPrice,\n    badges,\n    images,\n    "categoryId": category._ref,\n    description,\n    "plainDescription": pt::text(description),\n    details,\n    inventory\n  }\n': PRODUCT_BY_SLUG_QUERY_RESULT
+    '\n  *[_type == "product" && status == "active" && slug.current == $slug][0] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    compareAtPrice,\n    badges,\n    images,\n    "categoryId": category._ref,\n    description,\n    "plainDescription": pt::text(description),\n    details,\n    inventory,\n    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())\n  }\n': PRODUCT_BY_SLUG_QUERY_RESULT
     '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': RELATED_PRODUCTS_QUERY_RESULT
-    '\n  *[_type == "product" && _id in $ids] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    "image": images[0],\n    "available": status == "active" && inventory > 0,\n    shipping\n  }\n': BAG_PRODUCTS_QUERY_RESULT
+    '\n  *[_type == "product" && _id in $ids] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    "image": images[0],\n    "available": status == "active" && inventory > 0 && !(defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())),\n    "reserved": status == "active" && inventory > 0 && defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    shipping,\n    _rev\n  }\n': BAG_PRODUCTS_QUERY_RESULT
+    '\n  *[_type == "order" && _id == $id][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_ID_QUERY_RESULT
+    '\n  *[_type == "order" && payment.chargeId == $chargeId][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_CHARGE_QUERY_RESULT
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

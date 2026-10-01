@@ -47,7 +47,9 @@ const BagItems = ({ items, missing, editable = true }: Props) => {
               <p className="mt-1 text-sm">{formatShippingPrice(item.price)}</p>
             ) : (
               <p className="mt-1 text-sm font-bold text-red-700">
-                Esta peça já foi vendida
+                {item.reserved
+                  ? "Reservada por outra pessoa no momento"
+                  : "Esta peça já foi vendida"}
               </p>
             )}
           </div>

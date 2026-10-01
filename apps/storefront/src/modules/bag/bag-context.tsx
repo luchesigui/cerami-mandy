@@ -27,6 +27,7 @@ type BagContextValue = BagState & {
   remove: (id: string) => void
   setCep: (cep: string) => void
   setShipping: (option: ShippingOption | null) => void
+  clear: () => void
 }
 
 const EMPTY: BagState = { ids: [], cep: "", shipping: null }
@@ -95,6 +96,10 @@ export function BagProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, shipping }))
   }, [])
 
+  const clear = useCallback(() => {
+    setState((prev) => ({ ...EMPTY, cep: prev.cep }))
+  }, [])
+
   const value = useMemo(
     () => ({
       ...state,
@@ -105,8 +110,9 @@ export function BagProvider({ children }: { children: React.ReactNode }) {
       remove,
       setCep,
       setShipping,
+      clear,
     }),
-    [state, hydrated, has, add, remove, setCep, setShipping]
+    [state, hydrated, has, add, remove, setCep, setShipping, clear]
   )
 
   return <BagContext.Provider value={value}>{children}</BagContext.Provider>

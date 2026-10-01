@@ -12,6 +12,7 @@ export type BagProduct = {
   imageUrl: string | null
   imageAlt: string
   available: boolean
+  reserved: boolean
 }
 
 export async function getBagProducts(ids: string[]): Promise<BagProduct[]> {
@@ -31,5 +32,6 @@ export async function getBagProducts(ids: string[]): Promise<BagProduct[]> {
       : null,
     imageAlt: product.image?.alt ?? product.title ?? "",
     available: !!product.available,
+    reserved: !!product.reserved,
   }))
 }

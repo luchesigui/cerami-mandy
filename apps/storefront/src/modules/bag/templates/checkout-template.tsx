@@ -1,7 +1,17 @@
 "use client"
 
+import { useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
+import {
+  BR_STATES,
+  digits,
+  isValidCpf,
+  isValidEmail,
+  isValidPhone,
+  maskCpf,
+  maskPhone,
+} from "@lib/br-documents"
 import { isValidCep, maskCep, normalizeCep } from "@lib/shipping/cep"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
@@ -41,36 +51,6 @@ const EMPTY_FORM: CustomerForm = {
   state: "",
 }
 
-const digits = (value: string) => value.replace(/\D/g, "")
-
-const maskCpf = (value: string) =>
-  digits(value)
-    .slice(0, 11)
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
-
-const maskPhone = (value: string) => {
-  const d = digits(value).slice(0, 11)
-  if (d.length <= 2) return d
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
-}
-
-const isValidCpf = (value: string) => {
-  const cpf = digits(value)
-  if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false
-  const check = (length: number) => {
-    const sum = cpf
-      .slice(0, length)
-      .split("")
-      .reduce((acc, n, i) => acc + Number(n) * (length + 1 - i), 0)
-    return ((sum * 10) % 11) % 10
-  }
-  return check(9) === Number(cpf[9]) && check(10) === Number(cpf[10])
-}
-
 const readForm = (): CustomerForm => {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
@@ -102,6 +82,10 @@ const CheckoutTemplate = () => {
   const [formReady, setFormReady] = useState(false)
   const [cepError, setCepError] = useState<string | null>(null)
   const lastLookup = useRef("")
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const router = useRouter()
+  const { countryCode } = useParams<{ countryCode: string }>()
 
   useEffect(() => {
     if (!bag.hydrated) return
@@ -182,6 +166,69 @@ const CheckoutTemplate = () => {
 
   const cpfInvalid = digits(form.cpf).length === 11 && !isValidCpf(form.cpf)
 
+  const formValid =
+    form.name.trim().split(/\s+/).length >= 2 &&
+    isValidEmail(form.email) &&
+    isValidPhone(form.phone) &&
+    isValidCpf(form.cpf) &&
+    isValidCep(form.cep) &&
+    !!form.street.trim() &&
+    !!form.number.trim() &&
+    !!form.neighborhood.trim() &&
+    !!form.city.trim() &&
+    BR_STATES.includes(form.state)
+
+  const canPay = formValid && !!bag.shipping && !hasUnavailable && !submitting
+
+  const handlePay = async () => {
+    if (!canPay || !bag.shipping) return
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: {
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            cpf: form.cpf,
+          },
+          address: {
+            cep: form.cep,
+            street: form.street,
+            number: form.number,
+            complement: form.complement,
+            neighborhood: form.neighborhood,
+            city: form.city,
+            state: form.state,
+          },
+          productIds: bag.ids,
+          shippingServiceId: bag.shipping.id,
+        }),
+      })
+      const data = (await res.json()) as {
+        orderId?: string
+        accessToken?: string
+        error?: string
+      }
+      if (!res.ok || !data.orderId || !data.accessToken) {
+        setSubmitError(data.error ?? "Não foi possível finalizar o pedido.")
+        // Availability or the quote changed; force a fresh quote.
+        if (res.status === 409) bag.setShipping(null)
+        setSubmitting(false)
+        return
+      }
+      router.push(
+        `/${countryCode}/pedido/${data.orderId}?t=${encodeURIComponent(data.accessToken)}`
+      )
+    } catch {
+      setSubmitError("Não foi possível finalizar o pedido. Tente novamente.")
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="mx-auto grid max-w-[1100px] grid-cols-1 gap-10 px-4 py-12 text-[#13110C] sm:px-10 lg:grid-cols-[minmax(0,1fr)_400px]">
       <form
@@ -244,16 +291,27 @@ const CheckoutTemplate = () => {
         <div>
           <button
             type="button"
-            disabled
-            className="w-full cursor-not-allowed rounded-full bg-[#FCAB42]/50 px-10 py-3.5 text-base font-bold uppercase"
+            onClick={handlePay}
+            disabled={!canPay}
+            className="w-full rounded-full bg-[#FCAB42] px-10 py-3.5 text-base font-bold uppercase disabled:cursor-not-allowed disabled:bg-[#FCAB42]/50"
           >
-            Ir para pagamento
+            {submitting ? "Gerando Pix..." : "Pagar com Pix"}
           </button>
-          <p className="mt-2 text-center text-xs text-[#13110C]/60">
-            {hasUnavailable
-              ? "Remova as peças indisponíveis para continuar."
-              : "Pagamento via Pix em breve."}
-          </p>
+          {submitError ? (
+            <p className="mt-2 text-center text-xs font-bold text-red-700" role="alert">
+              {submitError}
+            </p>
+          ) : (
+            <p className="mt-2 text-center text-xs text-[#13110C]/60">
+              {hasUnavailable
+                ? "Remova as peças indisponíveis para continuar."
+                : !bag.shipping
+                  ? "Escolha o frete para continuar."
+                  : !formValid
+                    ? "Preencha seus dados e o endereço para continuar."
+                    : "A peça fica reservada para você por 30 minutos."}
+            </p>
+          )}
         </div>
       </aside>
     </div>
