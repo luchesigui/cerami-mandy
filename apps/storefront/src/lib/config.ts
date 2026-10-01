@@ -20,6 +20,10 @@ sdk.client.fetch = async <T>(
   input: FetchInput,
   init?: FetchArgs
 ): Promise<T> => {
+  if (!process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL) {
+    throw new Error("Medusa backend is not configured")
+  }
+
   const headers = init?.headers ?? {}
   let localeHeader: Record<string, string | null> | undefined
   try {
