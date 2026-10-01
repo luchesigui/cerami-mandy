@@ -27,10 +27,10 @@ const SoldShowcase = async () => {
       </ul>
       <div className="mt-12 flex justify-center">
         <LocalizedClientLink
-          href="/store"
+          href="/#catalogo"
           className="rounded-full bg-[#FCAB42] px-9 py-4 text-sm font-bold uppercase tracking-wide text-[#13110C] transition-colors hover:bg-white"
         >
-          Ver todas
+          Ver peças disponíveis
         </LocalizedClientLink>
       </div>
     </section>

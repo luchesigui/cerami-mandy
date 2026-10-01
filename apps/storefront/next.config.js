@@ -1,13 +1,3 @@
-const checkEnvVariables = require("./check-env-variables")
-
-checkEnvVariables()
-
-/**
- * Medusa Cloud-related environment variables
- */
-const S3_HOSTNAME = process.env.MEDUSA_CLOUD_S3_HOSTNAME
-const S3_PATHNAME = process.env.MEDUSA_CLOUD_S3_PATHNAME
-
 /**
  * @type {import('next').NextConfig}
  */
@@ -29,31 +19,18 @@ const nextConfig = {
     unoptimized: true,
     remotePatterns: [
       {
-        protocol: "http",
-        hostname: "localhost",
-      },
-      {
         protocol: "https",
         hostname: "cdn.sanity.io",
       },
-      {
-        protocol: "https",
-        hostname: "*.s3.*.amazonaws.com",
-      },
-      {
-        protocol: "https",
-        hostname: "*.s3.amazonaws.com",
-      },
-      ...(S3_HOSTNAME && S3_PATHNAME
-        ? [
-            {
-              protocol: "https",
-              hostname: S3_HOSTNAME,
-              pathname: S3_PATHNAME,
-            },
-          ]
-        : []),
     ],
+  },
+  // URLs from the Medusa starter carried a country prefix (/br/sacola) and had a /cart page.
+  async redirects() {
+    return [
+      { source: "/:cc(br|dk|us)", destination: "/", permanent: true },
+      { source: "/:cc(br|dk|us)/:path*", destination: "/:path*", permanent: true },
+      { source: "/cart", destination: "/sacola", permanent: true },
+    ]
   },
 }
 

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import React from "react"
 
-// Legacy name from the Medusa starter, which prefixed every URL with a country code.
+// Legacy name from the starter template, which prefixed every URL with a country code.
 // The site is Brazil-only now, so this is a plain Next.js link.
 const LocalizedClientLink = ({
   children,
