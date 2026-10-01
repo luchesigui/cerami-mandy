@@ -16,6 +16,11 @@ import {
   PaymentProviderError,
 } from "@lib/payments/infinitepay"
 import { safeEqual } from "@lib/safe-equal"
+import {
+  sendOrderConfirmationEmail,
+  sendPaymentConflictAlertEmail,
+  sendStoreSaleNotificationEmail,
+} from "@lib/email"
 import { isValidCep, normalizeCep } from "@lib/shipping/cep"
 import { getSiteUrl } from "@lib/util/deploy-env"
 import {
@@ -437,7 +442,28 @@ async function markOrderPaid(orderId: string, details: PaymentDetails) {
   console.info(
     `[orders] ${order.number} ${conflicting.length ? "paid with conflict" : "paid"}`
   )
-  return getOrder(orderId)
+
+  const updatedOrder = await getOrder(orderId)
+  if (updatedOrder) {
+    const baseUrl = getSiteUrl()
+    if (conflicting.length) {
+      sendPaymentConflictAlertEmail(
+        updatedOrder,
+        `Já vendida(s) ou reservada(s) por outro pedido: ${conflicting
+          .map((p) => p.title)
+          .join(", ")}`
+      ).catch((err) => console.error("[orders] conflict email failed:", err))
+    } else {
+      sendOrderConfirmationEmail(updatedOrder, baseUrl).catch((err) =>
+        console.error("[orders] customer confirmation email failed:", err)
+      )
+      sendStoreSaleNotificationEmail(updatedOrder).catch((err) =>
+        console.error("[orders] store sale notification email failed:", err)
+      )
+    }
+  }
+
+  return updatedOrder
 }
 
 // Confirms a payment reported by the webhook or the redirect. Their data is only a
@@ -498,6 +524,7 @@ export function toPublicOrder(order: Order) {
     id: order._id.replace(/^order\./, ""),
     number: order.number,
     status: order.status,
+    trackingCode: order.trackingCode ?? null,
     customerName: order.customer?.name ?? "",
     email: order.customer?.email ?? "",
     address: order.address,

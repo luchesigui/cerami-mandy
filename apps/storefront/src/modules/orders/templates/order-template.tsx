@@ -175,7 +175,7 @@ const OrderTemplate = ({ orderId, token }: Props) => {
         </section>
       )}
 
-      {paid && order.status !== "pago_conflito" && (
+      {order.status === "pago" && (
         <section className="space-y-3 text-center">
           <h1 className="text-2xl font-bold">Pedido confirmado!</h1>
           <p className="text-sm text-[#13110C]/70">
@@ -201,6 +201,48 @@ const OrderTemplate = ({ orderId, token }: Props) => {
           )}
           <p className="text-xs text-[#13110C]/60">
             Guarde o link desta página para acompanhar seu pedido.
+          </p>
+        </section>
+      )}
+
+      {order.status === "enviado" && (
+        <section className="space-y-4 text-center">
+          <div className="inline-block rounded-full bg-[#FCAB42]/20 px-4 py-1 text-xs font-bold uppercase tracking-wider text-[#13110C]">
+            Em trânsito
+          </div>
+          <h1 className="text-2xl font-bold">Seu pedido foi enviado!</h1>
+          <p className="text-sm text-[#13110C]/70">
+            Sua peça foi embalada com muito carinho e já está a caminho do endereço de entrega.
+          </p>
+          {order.trackingCode && (
+            <div className="mx-auto max-w-[380px] rounded-2xl border border-[#13110C]/15 bg-[#FFF6E8] p-5 text-left space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#13110C]/60">
+                Código de rastreio
+              </p>
+              <p className="font-mono text-base font-bold tracking-wider text-[#13110C]">
+                {order.trackingCode}
+              </p>
+              <a
+                href={`https://melhorrastreio.com.br/rastreio/${order.trackingCode}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block rounded-full bg-[#13110C] px-5 py-2 text-xs font-bold uppercase text-white hover:bg-[#13110C]/80 transition-colors"
+              >
+                Rastrear encomenda ↗
+              </a>
+            </div>
+          )}
+        </section>
+      )}
+
+      {order.status === "entregue" && (
+        <section className="space-y-3 text-center">
+          <div className="inline-block rounded-full bg-[#FFF6E8] border border-[#13110C]/15 px-4 py-1 text-xs font-bold uppercase tracking-wider text-[#13110C]">
+            Entregue
+          </div>
+          <h1 className="text-2xl font-bold">Pedido entregue!</h1>
+          <p className="text-sm text-[#13110C]/70">
+            Esperamos que sua nova peça traga muita alegria e beleza para os seus momentos.
           </p>
         </section>
       )}

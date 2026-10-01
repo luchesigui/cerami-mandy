@@ -462,7 +462,7 @@ export type BAG_PRODUCTS_QUERY_RESULT = Array<{
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: ORDER_BY_ID_QUERY
-// Query: *[_type == "order" && _id == $id][0] {   _id,  _rev,  number,  status,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt }
+// Query: *[_type == "order" && _id == $id][0] {   _id,  _rev,  number,  status,  trackingCode,  conflictNote,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt }
 export type ORDER_BY_ID_QUERY_RESULT = {
   _id: string
   _rev: string
@@ -476,6 +476,8 @@ export type ORDER_BY_ID_QUERY_RESULT = {
     | "pago_conflito"
     | "pago"
     | null
+  trackingCode: string | null
+  conflictNote: string | null
   accessToken: string | null
   customer: {
     name?: string
@@ -531,7 +533,7 @@ declare global {
     '\n  *[_type == "product" && status == "active" && slug.current == $slug][0] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    compareAtPrice,\n    badges,\n    images,\n    "categoryId": category._ref,\n    description,\n    "plainDescription": pt::text(description),\n    details,\n    inventory,\n    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())\n  }\n': PRODUCT_BY_SLUG_QUERY_RESULT
     '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': RELATED_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "product" && _id in $ids] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    "image": images[0],\n    "available": status == "active" && inventory > 0 && !(defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())),\n    "reserved": status == "active" && inventory > 0 && defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    shipping,\n    _rev\n  }\n': BAG_PRODUCTS_QUERY_RESULT
-    '\n  *[_type == "order" && _id == $id][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_ID_QUERY_RESULT
+    '\n  *[_type == "order" && _id == $id][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_ID_QUERY_RESULT
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

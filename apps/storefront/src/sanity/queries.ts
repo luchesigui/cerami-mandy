@@ -80,6 +80,8 @@ const ORDER_FIELDS = `
   _rev,
   number,
   status,
+  trackingCode,
+  conflictNote,
   accessToken,
   customer,
   address,

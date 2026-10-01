@@ -30,6 +30,9 @@ const nextConfig = {
       { source: "/:cc(br|dk|us)", destination: "/", permanent: true },
       { source: "/:cc(br|dk|us)/:path*", destination: "/:path*", permanent: true },
       { source: "/cart", destination: "/sacola", permanent: true },
+      { source: "/privacidade", destination: "/politica-de-privacidade", permanent: true },
+      { source: "/termos", destination: "/termos-de-uso", permanent: true },
+      { source: "/trocas", destination: "/trocas-e-devolucoes", permanent: true },
     ]
   },
 }

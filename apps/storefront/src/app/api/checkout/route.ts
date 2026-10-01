@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
 
 import { createOrder, OrderError, parseCheckoutInput } from "@lib/orders"
+import { isRateLimited } from "@lib/rate-limit"
 
 export async function POST(req: NextRequest) {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "127.0.0.1"
+
+  // Limit checkout creations to 5 attempts per 10 minutes per IP to avoid reservation abuse.
+  if (isRateLimited(`checkout:${ip}`, { windowMs: 10 * 60 * 1000, max: 5 })) {
+    return NextResponse.json(
+      {
+        error:
+          "Muitas tentativas em pouco tempo. Aguarde alguns minutos antes de tentar novamente.",
+      },
+      { status: 429, headers: { "Retry-After": "60" } }
+    )
+  }
+
   const body = await req.json().catch(() => null)
 
   try {
