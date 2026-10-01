@@ -1,8 +1,18 @@
 import "server-only"
 
+import { isProductionDeploy } from "@lib/util/deploy-env"
+
 const BASE_URL = "https://api.checkout.infinitepay.io"
 
 export class PaymentProviderError extends Error {}
+
+// InfinitePay has no sandbox for checkout links. With INFINITEPAY_MOCK=true (ignored on
+// the production deploy) links point to /api/dev/infinitepay-checkout, which "pays" instantly, and
+// payment_check accepts the mock transactions it creates.
+export const isMockMode = () =>
+  process.env.INFINITEPAY_MOCK === "true" && !isProductionDeploy()
+
+export const MOCK_PREFIX = "mock-"
 
 const getHandle = () => {
   const handle = process.env.INFINITEPAY_HANDLE?.replace(/^\$/, "")
@@ -66,6 +76,15 @@ export async function createCheckoutLink(input: {
   redirectUrl: string
   webhookUrl?: string
 }) {
+  if (isMockMode()) {
+    const amount = input.items.reduce((sum, item) => sum + item.priceCents, 0)
+    const params = new URLSearchParams({
+      amount: String(amount),
+      redirect: input.redirectUrl,
+    })
+    return `${new URL(input.redirectUrl).origin}/api/dev/infinitepay-checkout?${params}`
+  }
+
   const data = await post<unknown>("/links", {
     handle: getHandle(),
     order_nsu: input.orderNsu,
@@ -107,6 +126,12 @@ export async function checkPayment(input: {
   transactionNsu: string
   slug: string
 }): Promise<PaymentCheck> {
+  if (isMockMode() && input.transactionNsu.startsWith(MOCK_PREFIX)) {
+    // The mock checkout encodes the paid amount in the slug: mock-<cents>.
+    const amount = Number(input.slug.slice(MOCK_PREFIX.length)) || 0
+    return { paid: true, amount, paidAmount: amount, installments: 1, captureMethod: "pix" }
+  }
+
   const data = await post<{
     success?: boolean
     paid?: boolean

@@ -17,7 +17,7 @@ import {
 } from "@lib/payments/infinitepay"
 import { safeEqual } from "@lib/safe-equal"
 import { isValidCep, normalizeCep } from "@lib/shipping/cep"
-import { getBaseURL } from "@lib/util/env"
+import { getSiteUrl } from "@lib/util/deploy-env"
 import {
   quoteShipping,
   ShippingQuoteError,
@@ -273,7 +273,7 @@ export async function createOrder(input: CheckoutInput) {
   }
 
   try {
-    const baseUrl = getBaseURL().replace(/\/$/, "")
+    const baseUrl = getSiteUrl()
     const publicId = orderId.replace(/^order\./, "")
     const webhookSecret = process.env.INFINITEPAY_WEBHOOK_SECRET
     const checkoutUrl = await createCheckoutLink({
