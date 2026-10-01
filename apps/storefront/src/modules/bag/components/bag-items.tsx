@@ -28,7 +28,11 @@ const BagItems = ({ items, missing, editable = true }: Props) => {
                 alt={item.imageAlt}
                 fill
                 sizes="80px"
-                className={`object-cover ${item.available ? "" : "opacity-40 grayscale"}`}
+                className={`object-cover ${
+                  item.available
+                    ? ""
+                    : "grayscale hover:grayscale-0 transition-all duration-500 ease-out opacity-60 hover:opacity-100"
+                }`}
               />
             )}
           </div>

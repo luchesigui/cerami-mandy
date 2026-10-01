@@ -31,14 +31,22 @@ type ProductCardProps = {
   product: CardProduct
   showPrice?: boolean
   linked?: boolean
+  isAvailable?: boolean
 }
 
 const ProductCard = ({
   product,
   showPrice = true,
   linked = true,
+  isAvailable,
 }: ProductCardProps) => {
   const badges = getBadges(product)
+  const isUnavailable =
+    isAvailable !== undefined
+      ? !isAvailable
+      : product.inventory === 0 ||
+        badges.includes("esgotada") ||
+        (product.inventory !== null && product.inventory !== undefined && product.inventory <= 0)
   const price = formatPrice(product.price)
   const title = product.title ?? ""
 
@@ -63,7 +71,11 @@ const ProductCard = ({
             alt={product.image.alt ?? title}
             fill
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            className={`object-cover ease-out group-hover:scale-105 ${
+              isUnavailable
+                ? "grayscale group-hover:grayscale-0 hover:grayscale-0 transition-all duration-500"
+                : "transition-transform duration-500"
+            }`}
           />
         )}
       </div>

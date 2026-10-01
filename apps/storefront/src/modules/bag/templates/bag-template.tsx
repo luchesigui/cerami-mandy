@@ -70,7 +70,7 @@ const BagTemplate = () => {
             <p className="mt-2 text-center text-xs text-[#13110C]/60">
               {hasUnavailable
                 ? "Remova as peças indisponíveis para continuar."
-                : "Calcule e escolha o frete para continuar."}
+                : "Escolha a entrega ou retirada para continuar."}
             </p>
           </div>
         )}

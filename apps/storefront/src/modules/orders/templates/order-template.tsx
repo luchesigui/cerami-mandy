@@ -4,6 +4,7 @@ import { useParams, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 
 import type { PublicOrder } from "@lib/orders"
+import { isLocalPickupId } from "@lib/shipping/types"
 import { useBag } from "@modules/bag/bag-context"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { formatShippingPrice } from "@/sanity/format"
@@ -30,35 +31,51 @@ const useCountdown = (expiresAt: string | null | undefined) => {
   return `${minutes}:${String(seconds).padStart(2, "0")}`
 }
 
-const Summary = ({ order }: { order: PublicOrder }) => (
-  <section className="space-y-4 rounded-3xl bg-[#FFF6E8] p-6 text-sm">
-    <ul className="space-y-1">
-      {order.items.map((item, index) => (
-        <li key={index} className="flex justify-between gap-4">
-          <span>{item.title}</span>
-          <span>{formatShippingPrice(item.price ?? 0)}</span>
+const Summary = ({ order }: { order: PublicOrder }) => {
+  const isPickup = isLocalPickupId(order.shipping?.serviceId)
+
+  return (
+    <section className="space-y-4 rounded-3xl bg-[#FFF6E8] p-6 text-sm">
+      <ul className="space-y-1">
+        {order.items.map((item, index) => (
+          <li key={index} className="flex justify-between gap-4">
+            <span>{item.title}</span>
+            <span>{formatShippingPrice(item.price ?? 0)}</span>
+          </li>
+        ))}
+        <li className="flex justify-between gap-4">
+          <span>
+            {isPickup
+              ? "Retirada no local"
+              : `Frete ${order.shipping?.company} ${order.shipping?.name}`}
+          </span>
+          <span>
+            {order.shippingTotal === 0
+              ? "Grátis"
+              : formatShippingPrice(order.shippingTotal ?? 0)}
+          </span>
         </li>
-      ))}
-      <li className="flex justify-between gap-4">
-        <span>
-          Frete {order.shipping?.company} {order.shipping?.name}
-        </span>
-        <span>{formatShippingPrice(order.shippingTotal ?? 0)}</span>
-      </li>
-    </ul>
-    <p className="flex justify-between border-t border-[#13110C]/15 pt-3 text-base font-bold">
-      <span>Total</span>
-      <span>{formatShippingPrice(order.total ?? 0)}</span>
-    </p>
-    {order.address && (
-      <p className="text-[#13110C]/70">
-        Entrega em {order.address.street}, {order.address.number}
-        {order.address.complement ? ` - ${order.address.complement}` : ""},{" "}
-        {order.address.neighborhood}, {order.address.city}/{order.address.state}
+      </ul>
+      <p className="flex justify-between border-t border-[#13110C]/15 pt-3 text-base font-bold">
+        <span>Total</span>
+        <span>{formatShippingPrice(order.total ?? 0)}</span>
       </p>
-    )}
-  </section>
-)
+      {isPickup ? (
+        <p className="text-[#13110C]/70">
+          <strong>Retirada no local:</strong> entraremos em contato para combinar a entrega em mãos.
+        </p>
+      ) : (
+        order.address && (
+          <p className="text-[#13110C]/70">
+            Entrega em {order.address.street}, {order.address.number}
+            {order.address.complement ? ` - ${order.address.complement}` : ""},{" "}
+            {order.address.neighborhood}, {order.address.city}/{order.address.state}
+          </p>
+        )
+      )}
+    </section>
+  )
+}
 
 const OrderTemplate = ({ orderId, token }: Props) => {
   const { clear } = useBag()
@@ -168,8 +185,10 @@ const OrderTemplate = ({ orderId, token }: Props) => {
             {order.payment && order.payment.installments > 1
               ? ` em ${order.payment.installments}x`
               : ""}{" "}
-            e sua peça será embalada com carinho. Prazo de entrega: até{" "}
-            {order.shipping?.deliveryDays} dias úteis após o envio.
+            e sua peça será embalada com carinho.{" "}
+            {isLocalPickupId(order.shipping?.serviceId)
+              ? "Entraremos em contato pelo WhatsApp/e-mail para combinar a retirada no local."
+              : `Prazo de entrega: até ${order.shipping?.deliveryDays} dias úteis após o envio.`}
           </p>
           {order.payment?.receiptUrl && (
             <a

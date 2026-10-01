@@ -112,7 +112,7 @@ const ProductTemplate = ({ product, related }: Props) => {
 
       {/* Main PDP Grid: Gallery (Left) & Info (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_384px] xl:grid-cols-[minmax(0,1fr)_440px] 2xl:grid-cols-[minmax(0,1fr)_520px]">
-        <ProductGallery images={gallery} />
+        <ProductGallery images={gallery} isUnavailable={soldOut} />
 
         <div className="flex flex-col justify-between px-8 py-10 lg:px-12 lg:py-14 bg-white min-h-[440px]">
           <div>

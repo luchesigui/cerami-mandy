@@ -13,6 +13,7 @@ import {
   maskPhone,
 } from "@lib/br-documents"
 import { isValidCep, maskCep, normalizeCep } from "@lib/shipping/cep"
+import { isLocalPickup } from "@lib/shipping/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 import { useBag } from "../bag-context"
@@ -423,7 +424,18 @@ const CheckoutTemplate = () => {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-wide">Endereço de entrega</h2>
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wide">
+              {isLocalPickup(bag.shipping)
+                ? "Seu endereço"
+                : "Endereço de entrega"}
+            </h2>
+            {isLocalPickup(bag.shipping) && (
+              <p className="mt-1 text-xs text-[#13110C]/60">
+                Necessário para o cadastro e processamento do pagamento.
+              </p>
+            )}
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
             <div>
               <Field
@@ -507,7 +519,7 @@ const CheckoutTemplate = () => {
           <ShippingCalculator showCepInput={false} />
           {attemptedSubmit && !bag.shipping && (
             <p className="mt-3 text-xs font-bold text-red-700" role="alert">
-              Selecione uma das opções de frete acima para continuar.
+              Selecione uma das opções de entrega ou retirada acima para continuar.
             </p>
           )}
         </div>
@@ -544,7 +556,7 @@ const CheckoutTemplate = () => {
                 attemptedSubmit ? "font-bold text-red-700" : "text-[#13110C]/60"
               }`}
             >
-              Escolha o frete para continuar.
+              Escolha a entrega ou retirada para continuar.
             </p>
           ) : !formValid ? (
             <p

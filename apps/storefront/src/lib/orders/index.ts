@@ -24,6 +24,11 @@ import {
   type ShippingPackage,
 } from "@lib/shipping/melhor-envio"
 import {
+  isLocalPickupId,
+  LOCAL_PICKUP_OPTION,
+  type ShippingOption,
+} from "@lib/shipping/types"
+import {
   BAG_PRODUCTS_QUERY,
   ORDER_BY_ID_QUERY,
 } from "@/sanity/queries"
@@ -188,16 +193,20 @@ export async function createOrder(input: CheckoutInput) {
     return { id, rev: product._rev, title: product.title ?? "", price: product.price }
   })
 
-  let shippingOption
-  try {
-    const options = await quoteShipping({ toCep: input.address.cep, packages })
-    shippingOption = options.find((o) => o.id === input.shippingServiceId)
-  } catch (err) {
-    if (err instanceof ShippingQuoteError) {
-      console.error("[checkout] shipping quote failed:", err.message)
-      throw new OrderError("Não foi possível confirmar o frete. Tente novamente.", 502)
+  let shippingOption: ShippingOption | undefined
+  if (isLocalPickupId(input.shippingServiceId)) {
+    shippingOption = LOCAL_PICKUP_OPTION
+  } else {
+    try {
+      const options = await quoteShipping({ toCep: input.address.cep, packages })
+      shippingOption = options.find((o) => o.id === input.shippingServiceId)
+    } catch (err) {
+      if (err instanceof ShippingQuoteError) {
+        console.error("[checkout] shipping quote failed:", err.message)
+        throw new OrderError("Não foi possível confirmar o frete. Tente novamente.", 502)
+      }
+      throw err
     }
-    throw err
   }
   if (!shippingOption) {
     throw new OrderError("O frete mudou. Escolha a opção de entrega de novo.", 409)
@@ -274,10 +283,14 @@ export async function createOrder(input: CheckoutInput) {
           description: item.title,
           priceCents: toCents(item.price),
         })),
-        {
-          description: `Frete ${shippingOption.company} ${shippingOption.name}`,
-          priceCents: toCents(shippingOption.price),
-        },
+        ...(shippingOption.price > 0
+          ? [
+              {
+                description: `Frete ${shippingOption.company} ${shippingOption.name}`,
+                priceCents: toCents(shippingOption.price),
+              },
+            ]
+          : []),
       ],
       customer: {
         name: input.customer.name,

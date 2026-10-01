@@ -9,7 +9,7 @@ import {
   useState,
 } from "react"
 
-import type { ShippingOption } from "@lib/shipping/types"
+import { isLocalPickup, type ShippingOption } from "@lib/shipping/types"
 
 const STORAGE_KEY = "cerami-bag"
 
@@ -69,12 +69,16 @@ export function BagProvider({ children }: { children: React.ReactNode }) {
 
   const has = useCallback((id: string) => state.ids.includes(id), [state.ids])
 
-  // Any change to the items invalidates the quote, since it depends on the packages.
+  // Any change to the items invalidates carrier quotes, but local pickup remains valid.
   const add = useCallback((id: string) => {
     setState((prev) =>
       prev.ids.includes(id)
         ? prev
-        : { ...prev, ids: [...prev.ids, id], shipping: null }
+        : {
+            ...prev,
+            ids: [...prev.ids, id],
+            shipping: isLocalPickup(prev.shipping) ? prev.shipping : null,
+          }
     )
   }, [])
 
@@ -82,13 +86,19 @@ export function BagProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({
       ...prev,
       ids: prev.ids.filter((item) => item !== id),
-      shipping: null,
+      shipping: isLocalPickup(prev.shipping) ? prev.shipping : null,
     }))
   }, [])
 
   const setCep = useCallback((cep: string) => {
     setState((prev) =>
-      prev.cep === cep ? prev : { ...prev, cep, shipping: null }
+      prev.cep === cep
+        ? prev
+        : {
+            ...prev,
+            cep,
+            shipping: isLocalPickup(prev.shipping) ? prev.shipping : null,
+          }
     )
   }, [])
 

@@ -27,6 +27,16 @@ export default async function ProductPreview({
     product,
   })
 
+  const isUnavailable = Boolean(
+    product.variants?.length &&
+      product.variants.every(
+        (v) =>
+          v.manage_inventory &&
+          !v.allow_backorder &&
+          (v.inventory_quantity || 0) <= 0
+      )
+  )
+
   return (
     <LocalizedClientLink href={`/products/${product.handle}`} className="group">
       <div data-testid="product-wrapper">
@@ -35,6 +45,7 @@ export default async function ProductPreview({
           images={product.images}
           size="full"
           isFeatured={isFeatured}
+          isUnavailable={isUnavailable}
         />
         <div className="flex txt-compact-medium mt-4 justify-between">
           <Text className="text-ui-fg-subtle" data-testid="product-title">

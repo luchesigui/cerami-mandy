@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react"
 
 import { isValidCep, maskCep, normalizeCep } from "@lib/shipping/cep"
-import type { ShippingOption } from "@lib/shipping/types"
+import {
+  isLocalPickup,
+  LOCAL_PICKUP_OPTION,
+  type ShippingOption,
+} from "@lib/shipping/types"
 import { formatShippingPrice } from "@/sanity/format"
 
 import { useBag } from "../bag-context"
@@ -16,7 +20,7 @@ type Props = {
 const ShippingCalculator = ({ showCepInput = true }: Props) => {
   const { ids, cep, shipping, hydrated, setCep, setShipping } = useBag()
   const [input, setInput] = useState("")
-  const [options, setOptions] = useState<ShippingOption[]>([])
+  const [options, setOptions] = useState<ShippingOption[]>([LOCAL_PICKUP_OPTION])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const idsKey = ids.join(",")
@@ -27,7 +31,7 @@ const ShippingCalculator = ({ showCepInput = true }: Props) => {
 
   useEffect(() => {
     if (!hydrated || !isValidCep(cep) || !idsKey) {
-      setOptions([])
+      setOptions([LOCAL_PICKUP_OPTION])
       return
     }
 
@@ -44,21 +48,27 @@ const ShippingCalculator = ({ showCepInput = true }: Props) => {
         const data = (await res.json()) as {
           options?: ShippingOption[]
           error?: string
+          warning?: string
         }
         if (cancelled) return
         if (!res.ok) {
-          setOptions([])
-          setError(data.error ?? "Não foi possível calcular o frete.")
+          setOptions([LOCAL_PICKUP_OPTION])
+          setError(
+            data.error ?? "Não foi possível calcular o frete das transportadoras."
+          )
           return
         }
-        const fresh = data.options ?? []
+        const fresh = data.options?.length ? data.options : [LOCAL_PICKUP_OPTION]
         setOptions(fresh)
-        if (!fresh.length) {
-          setError("Nenhuma transportadora atende este CEP.")
+        if (data.warning) {
+          setError(data.warning)
         }
       })
       .catch(() => {
-        if (!cancelled) setError("Não foi possível calcular o frete.")
+        if (!cancelled) {
+          setOptions([LOCAL_PICKUP_OPTION])
+          setError("Não foi possível calcular o frete das transportadoras.")
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -97,7 +107,7 @@ const ShippingCalculator = ({ showCepInput = true }: Props) => {
   return (
     <section className="text-[#13110C]" aria-labelledby="shipping-calculator">
       <h2 id="shipping-calculator" className="text-sm font-bold uppercase tracking-wide">
-        Calcular frete
+        Opções de entrega
       </h2>
 
       {showCepInput && (
@@ -119,7 +129,7 @@ const ShippingCalculator = ({ showCepInput = true }: Props) => {
             disabled={loading}
             className="shrink-0 rounded-full bg-[#13110C] px-5 py-2.5 text-sm font-bold uppercase text-white disabled:opacity-60"
           >
-            Calcular
+            Calcular frete
           </button>
         </form>
       )}
@@ -145,17 +155,18 @@ const ShippingCalculator = ({ showCepInput = true }: Props) => {
         </p>
       )}
 
-      {!loading && !error && !options.length && !showCepInput && (
-        <p className="mt-3 text-sm text-[#13110C]/60">
-          Informe o CEP de entrega para ver as opções de frete.
+      {!loading && !showCepInput && options.length <= 1 && (
+        <p className="mt-3 text-xs text-[#13110C]/60">
+          Preencha o CEP no endereço acima para ver também as opções de envio pelos Correios e transportadoras.
         </p>
       )}
 
       {!loading && !!options.length && (
         <fieldset className="mt-4 space-y-2">
-          <legend className="sr-only">Opções de frete</legend>
+          <legend className="sr-only">Opções de frete e entrega</legend>
           {options.map((option) => {
             const checked = shipping?.id === option.id
+            const isPickup = isLocalPickup(option)
             return (
               <label
                 key={option.id}
@@ -174,15 +185,20 @@ const ShippingCalculator = ({ showCepInput = true }: Props) => {
                 />
                 <span className="flex-1">
                   <span className="font-bold">
-                    {option.company} {option.name}
+                    {isPickup ? option.name : `${option.company} ${option.name}`}
                   </span>
                   <span className="block text-xs text-[#13110C]/60">
-                    Até {option.deliveryDays}{" "}
-                    {option.deliveryDays === 1 ? "dia útil" : "dias úteis"}
+                    {isPickup
+                      ? option.description ?? "A combinar após a confirmação"
+                      : `Até ${option.deliveryDays} ${
+                          option.deliveryDays === 1 ? "dia útil" : "dias úteis"
+                        }`}
                   </span>
                 </span>
                 <span className="font-bold">
-                  {formatShippingPrice(option.price)}
+                  {option.price === 0
+                    ? "Grátis"
+                    : formatShippingPrice(option.price)}
                 </span>
               </label>
             )

@@ -10,6 +10,7 @@ export type GalleryImage = {
 
 type ProductGalleryProps = {
   images: GalleryImage[]
+  isUnavailable?: boolean
 }
 
 const ArrowIcon = ({ direction }: { direction: "left" | "right" }) => (
@@ -31,7 +32,7 @@ const ArrowIcon = ({ direction }: { direction: "left" | "right" }) => (
   </svg>
 )
 
-const ProductGallery = ({ images }: ProductGalleryProps) => {
+const ProductGallery = ({ images, isUnavailable = false }: ProductGalleryProps) => {
   const trackRef = useRef<HTMLUListElement>(null)
 
   const scrollBySlide = (direction: 1 | -1) => {
@@ -70,7 +71,11 @@ const ProductGallery = ({ images }: ProductGalleryProps) => {
                 fill
                 priority={idx === 0}
                 sizes="(min-width: 1024px) 80vh, (min-width: 640px) 46vw, 85vw"
-                className="object-cover"
+                className={`object-cover ${
+                  isUnavailable
+                    ? "grayscale hover:grayscale-0 transition-all duration-500 ease-out"
+                    : ""
+                }`}
               />
             </li>
           ))

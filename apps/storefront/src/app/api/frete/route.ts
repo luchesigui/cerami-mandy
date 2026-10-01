@@ -6,6 +6,7 @@ import {
   ShippingQuoteError,
   type ShippingPackage,
 } from "@lib/shipping/melhor-envio"
+import { LOCAL_PICKUP_OPTION } from "@lib/shipping/types"
 import { BAG_PRODUCTS_QUERY } from "@/sanity/queries"
 import { serverClient } from "@/sanity/server-client"
 
@@ -82,14 +83,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const options = await quoteShipping({ toCep: cep, packages })
-    return NextResponse.json({ options })
+    const carrierOptions = await quoteShipping({ toCep: cep, packages })
+    return NextResponse.json({
+      options: [LOCAL_PICKUP_OPTION, ...carrierOptions],
+    })
   } catch (err) {
     if (!(err instanceof ShippingQuoteError)) throw err
     console.error("[frete]", err.message)
-    return NextResponse.json(
-      { error: "Não foi possível calcular o frete agora. Tente novamente." },
-      { status: 502 }
-    )
+    return NextResponse.json({
+      options: [LOCAL_PICKUP_OPTION],
+      warning:
+        "Não foi possível calcular o frete das transportadoras. A retirada no local continua disponível.",
+    })
   }
 }
