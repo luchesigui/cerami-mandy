@@ -60,17 +60,109 @@ const readForm = (): CustomerForm => {
   }
 }
 
-const inputClassName =
-  "mt-1 w-full rounded-full border border-[#13110C]/20 bg-white px-4 py-2.5 text-sm outline-none focus:border-[#13110C]"
+type FormErrors = Partial<Record<keyof CustomerForm, string>>
+
+const getFieldErrors = (form: CustomerForm): FormErrors => {
+  const errors: FormErrors = {}
+
+  const nameTrimmed = form.name.trim()
+  if (!nameTrimmed) {
+    errors.name = "Informe seu nome completo."
+  } else if (nameTrimmed.split(/\s+/).filter(Boolean).length < 2) {
+    errors.name = "Informe nome e sobrenome."
+  }
+
+  const emailTrimmed = form.email.trim()
+  if (!emailTrimmed) {
+    errors.email = "Informe seu e-mail."
+  } else if (!isValidEmail(emailTrimmed)) {
+    errors.email = "Informe um e-mail válido."
+  }
+
+  const phoneDigits = digits(form.phone)
+  if (!phoneDigits) {
+    errors.phone = "Informe seu telefone."
+  } else if (!isValidPhone(form.phone)) {
+    errors.phone = "Informe um telefone válido com DDD."
+  }
+
+  const cpfDigits = digits(form.cpf)
+  if (!cpfDigits) {
+    errors.cpf = "Informe seu CPF."
+  } else if (cpfDigits.length !== 11 || !isValidCpf(form.cpf)) {
+    errors.cpf = "CPF inválido."
+  }
+
+  const cepDigits = digits(form.cep)
+  if (!cepDigits) {
+    errors.cep = "Informe o CEP."
+  } else if (!isValidCep(form.cep)) {
+    errors.cep = "CEP inválido (8 dígitos)."
+  }
+
+  if (!form.street.trim()) {
+    errors.street = "Informe o nome da rua / logradouro."
+  }
+
+  if (!form.number.trim()) {
+    errors.number = "Informe o número (ou S/N)."
+  }
+
+  if (!form.neighborhood.trim()) {
+    errors.neighborhood = "Informe o bairro."
+  }
+
+  if (!form.city.trim()) {
+    errors.city = "Informe a cidade."
+  }
+
+  const stateUpper = form.state.trim().toUpperCase()
+  if (!stateUpper) {
+    errors.state = "Informe a UF."
+  } else if (!BR_STATES.includes(stateUpper)) {
+    errors.state = "UF inválida (ex: SP)."
+  }
+
+  return errors
+}
 
 const Field = ({
   label,
+  error,
   className = "",
+  required,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) => (
+}: React.InputHTMLAttributes<HTMLInputElement> & {
+  label: string
+  error?: string | null
+}) => (
   <label className={`block text-xs font-bold uppercase tracking-wide ${className}`}>
-    {label}
-    <input {...props} className={`${inputClassName} font-normal normal-case tracking-normal`} />
+    <span className="flex items-center justify-between">
+      <span>{label}</span>
+      {required && (
+        <span className="text-[10px] font-normal lowercase tracking-normal text-[#13110C]/50">
+          obrigatório
+        </span>
+      )}
+    </span>
+    <input
+      {...props}
+      required={required}
+      aria-invalid={!!error}
+      className={`mt-1 w-full rounded-full border bg-white px-4 py-2.5 text-sm font-normal normal-case tracking-normal outline-none transition-colors ${
+        error
+          ? "border-red-600 bg-red-50/40 text-[#13110C] focus:border-red-600"
+          : "border-[#13110C]/20 focus:border-[#13110C]"
+      }`}
+    />
+    {error && (
+      <span
+        className="mt-1 block text-xs font-normal normal-case tracking-normal text-red-700"
+        role="alert"
+      >
+        {error}
+      </span>
+    )}
   </label>
 )
 
@@ -84,6 +176,8 @@ const CheckoutTemplate = () => {
   const lastLookup = useRef("")
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [touched, setTouched] = useState<Partial<Record<keyof CustomerForm, boolean>>>({})
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false)
   const { countryCode } = useParams<{ countryCode: string }>()
 
   useEffect(() => {
@@ -139,7 +233,31 @@ const CheckoutTemplate = () => {
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const value = mask ? mask(event.target.value) : event.target.value
       setForm((prev) => ({ ...prev, [key]: value }))
+      if (submitError) setSubmitError(null)
     }
+
+  const markTouched = (key: keyof CustomerForm) => {
+    setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }))
+  }
+
+  const fieldErrors = getFieldErrors(form)
+  const formValid = Object.keys(fieldErrors).length === 0
+  const firstErrorMessage = Object.values(fieldErrors)[0]
+
+  const getVisibleError = (key: keyof CustomerForm): string | undefined => {
+    const error = fieldErrors[key]
+    if (!error) return undefined
+    if (attemptedSubmit || touched[key]) return error
+    const val = form[key]?.trim?.() ?? ""
+    if (val.length > 0) {
+      if (key === "name" && val.split(/\s+/).filter(Boolean).length < 2) return error
+      if (key === "cpf" && digits(val).length >= 11) return error
+      if (key === "email" && val.includes("@") && !isValidEmail(val)) return error
+      if (key === "phone" && digits(val).length >= 10 && !isValidPhone(val)) return error
+      if (key === "state" && val.length === 2 && !BR_STATES.includes(val.toUpperCase())) return error
+    }
+    return undefined
+  }
 
   if (!bag.hydrated || (loading && bag.count > 0)) {
     return (
@@ -163,24 +281,25 @@ const CheckoutTemplate = () => {
     )
   }
 
-  const cpfInvalid = digits(form.cpf).length === 11 && !isValidCpf(form.cpf)
-
-  const formValid =
-    form.name.trim().split(/\s+/).length >= 2 &&
-    isValidEmail(form.email) &&
-    isValidPhone(form.phone) &&
-    isValidCpf(form.cpf) &&
-    isValidCep(form.cep) &&
-    !!form.street.trim() &&
-    !!form.number.trim() &&
-    !!form.neighborhood.trim() &&
-    !!form.city.trim() &&
-    BR_STATES.includes(form.state)
-
-  const canPay = formValid && !!bag.shipping && !hasUnavailable && !submitting
-
   const handlePay = async () => {
-    if (!canPay || !bag.shipping) return
+    setAttemptedSubmit(true)
+
+    const errorKeys = Object.keys(fieldErrors) as (keyof CustomerForm)[]
+    if (errorKeys.length > 0) {
+      const firstKey = errorKeys[0]
+      const input = document.querySelector<HTMLInputElement>(`[name="${firstKey}"]`)
+      input?.focus()
+      return
+    }
+
+    if (!bag.shipping) {
+      const shippingSection = document.getElementById("shipping-calculator")
+      shippingSection?.scrollIntoView({ behavior: "smooth" })
+      return
+    }
+
+    if (hasUnavailable || submitting) return
+
     setSubmitting(true)
     setSubmitError(null)
     try {
@@ -189,19 +308,19 @@ const CheckoutTemplate = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer: {
-            name: form.name,
-            email: form.email,
+            name: form.name.trim(),
+            email: form.email.trim(),
             phone: form.phone,
             cpf: form.cpf,
           },
           address: {
             cep: form.cep,
-            street: form.street,
-            number: form.number,
-            complement: form.complement,
-            neighborhood: form.neighborhood,
-            city: form.city,
-            state: form.state,
+            street: form.street.trim(),
+            number: form.number.trim(),
+            complement: form.complement.trim(),
+            neighborhood: form.neighborhood.trim(),
+            city: form.city.trim(),
+            state: form.state.trim().toUpperCase(),
           },
           productIds: bag.ids,
           shippingServiceId: bag.shipping.id,
@@ -253,14 +372,53 @@ const CheckoutTemplate = () => {
 
         <section className="space-y-4">
           <h2 className="text-sm font-bold uppercase tracking-wide">Seus dados</h2>
-          <Field label="Nome completo" autoComplete="name" required value={form.name} onChange={update("name")} />
+          <Field
+            label="Nome completo"
+            name="name"
+            autoComplete="name"
+            required
+            value={form.name}
+            onChange={update("name")}
+            onBlur={() => markTouched("name")}
+            error={getVisibleError("name")}
+          />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="E-mail" type="email" autoComplete="email" required value={form.email} onChange={update("email")} />
-            <Field label="Telefone" type="tel" autoComplete="tel-national" placeholder="(11) 91234-5678" required value={form.phone} onChange={update("phone", maskPhone)} />
+            <Field
+              label="E-mail"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={form.email}
+              onChange={update("email")}
+              onBlur={() => markTouched("email")}
+              error={getVisibleError("email")}
+            />
+            <Field
+              label="Telefone"
+              name="phone"
+              type="tel"
+              autoComplete="tel-national"
+              placeholder="(11) 91234-5678"
+              required
+              value={form.phone}
+              onChange={update("phone", maskPhone)}
+              onBlur={() => markTouched("phone")}
+              error={getVisibleError("phone")}
+            />
           </div>
           <div>
-            <Field label="CPF" inputMode="numeric" placeholder="000.000.000-00" required value={form.cpf} onChange={update("cpf", maskCpf)} aria-invalid={cpfInvalid} />
-            {cpfInvalid && <p className="mt-1 text-xs text-red-700">CPF inválido.</p>}
+            <Field
+              label="CPF"
+              name="cpf"
+              inputMode="numeric"
+              placeholder="000.000.000-00"
+              required
+              value={form.cpf}
+              onChange={update("cpf", maskCpf)}
+              onBlur={() => markTouched("cpf")}
+              error={getVisibleError("cpf")}
+            />
           </div>
         </section>
 
@@ -268,23 +426,91 @@ const CheckoutTemplate = () => {
           <h2 className="text-sm font-bold uppercase tracking-wide">Endereço de entrega</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
             <div>
-              <Field label="CEP" inputMode="numeric" autoComplete="postal-code" placeholder="00000-000" required value={form.cep} onChange={update("cep", maskCep)} />
-              {cepError && <p className="mt-1 text-xs text-red-700">{cepError}</p>}
+              <Field
+                label="CEP"
+                name="cep"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                placeholder="00000-000"
+                required
+                value={form.cep}
+                onChange={update("cep", maskCep)}
+                onBlur={() => markTouched("cep")}
+                error={cepError || getVisibleError("cep")}
+              />
             </div>
-            <Field label="Rua" autoComplete="address-line1" required value={form.street} onChange={update("street")} />
+            <Field
+              label="Rua"
+              name="street"
+              autoComplete="address-line1"
+              required
+              value={form.street}
+              onChange={update("street")}
+              onBlur={() => markTouched("street")}
+              error={getVisibleError("street")}
+            />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
-            <Field label="Número" inputMode="numeric" required value={form.number} onChange={update("number")} />
-            <Field label="Complemento" autoComplete="address-line2" value={form.complement} onChange={update("complement")} />
+            <Field
+              label="Número"
+              name="number"
+              inputMode="numeric"
+              required
+              value={form.number}
+              onChange={update("number")}
+              onBlur={() => markTouched("number")}
+              error={getVisibleError("number")}
+            />
+            <Field
+              label="Complemento"
+              name="complement"
+              autoComplete="address-line2"
+              value={form.complement}
+              onChange={update("complement")}
+            />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_100px]">
-            <Field label="Bairro" required value={form.neighborhood} onChange={update("neighborhood")} />
-            <Field label="Cidade" autoComplete="address-level2" required value={form.city} onChange={update("city")} />
-            <Field label="UF" autoComplete="address-level1" maxLength={2} required value={form.state} onChange={update("state", (v) => v.toUpperCase())} />
+            <Field
+              label="Bairro"
+              name="neighborhood"
+              required
+              value={form.neighborhood}
+              onChange={update("neighborhood")}
+              onBlur={() => markTouched("neighborhood")}
+              error={getVisibleError("neighborhood")}
+            />
+            <Field
+              label="Cidade"
+              name="city"
+              autoComplete="address-level2"
+              required
+              value={form.city}
+              onChange={update("city")}
+              onBlur={() => markTouched("city")}
+              error={getVisibleError("city")}
+            />
+            <Field
+              label="UF"
+              name="state"
+              autoComplete="address-level1"
+              maxLength={2}
+              required
+              value={form.state}
+              onChange={update("state", (v) => v.toUpperCase())}
+              onBlur={() => markTouched("state")}
+              error={getVisibleError("state")}
+            />
           </div>
         </section>
 
-        <ShippingCalculator showCepInput={false} />
+        <div>
+          <ShippingCalculator showCepInput={false} />
+          {attemptedSubmit && !bag.shipping && (
+            <p className="mt-3 text-xs font-bold text-red-700" role="alert">
+              Selecione uma das opções de frete acima para continuar.
+            </p>
+          )}
+        </div>
       </form>
 
       <aside className="h-fit space-y-6 rounded-3xl bg-[#FFF6E8] p-6">
@@ -295,8 +521,8 @@ const CheckoutTemplate = () => {
           <button
             type="button"
             onClick={handlePay}
-            disabled={!canPay}
-            className="w-full rounded-full bg-[#FCAB42] px-10 py-3.5 text-base font-bold uppercase disabled:cursor-not-allowed disabled:bg-[#FCAB42]/50"
+            disabled={submitting || hasUnavailable}
+            className="w-full rounded-full bg-[#FCAB42] px-10 py-3.5 text-base font-bold uppercase transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-[#FCAB42]/50"
           >
             {submitting ? "Reservando..." : "Reservar e pagar"}
           </button>
@@ -304,15 +530,35 @@ const CheckoutTemplate = () => {
             <p className="mt-2 text-center text-xs font-bold text-red-700" role="alert">
               {submitError}
             </p>
+          ) : hasUnavailable ? (
+            <p className="mt-2 text-center text-xs font-bold text-red-700">
+              Remova as peças indisponíveis para continuar.
+            </p>
+          ) : attemptedSubmit && firstErrorMessage ? (
+            <p className="mt-2 text-center text-xs font-bold text-red-700" role="alert">
+              {firstErrorMessage}
+            </p>
+          ) : !bag.shipping ? (
+            <p
+              className={`mt-2 text-center text-xs ${
+                attemptedSubmit ? "font-bold text-red-700" : "text-[#13110C]/60"
+              }`}
+            >
+              Escolha o frete para continuar.
+            </p>
+          ) : !formValid ? (
+            <p
+              className={`mt-2 text-center text-xs ${
+                attemptedSubmit ? "font-bold text-red-700" : "text-[#13110C]/60"
+              }`}
+            >
+              {attemptedSubmit
+                ? "Preencha os campos destacados em vermelho acima."
+                : "Preencha seus dados e o endereço para continuar."}
+            </p>
           ) : (
             <p className="mt-2 text-center text-xs text-[#13110C]/60">
-              {hasUnavailable
-                ? "Remova as peças indisponíveis para continuar."
-                : !bag.shipping
-                  ? "Escolha o frete para continuar."
-                  : !formValid
-                    ? "Preencha seus dados e o endereço para continuar."
-                    : "Pix ou cartão em até 12x. A peça fica reservada por 30 minutos."}
+              Pix ou cartão em até 12x. A peça fica reservada por 30 minutos.
             </p>
           )}
         </div>
