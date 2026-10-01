@@ -96,7 +96,3 @@ const ORDER_FIELDS = `
 export const ORDER_BY_ID_QUERY = defineQuery(`
   *[_type == "order" && _id == $id][0] { ${ORDER_FIELDS} }
 `)
-
-export const ORDER_BY_CHARGE_QUERY = defineQuery(`
-  *[_type == "order" && payment.chargeId == $chargeId][0] { ${ORDER_FIELDS} }
-`)

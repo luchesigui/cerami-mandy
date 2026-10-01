@@ -4,6 +4,7 @@ import { BillIcon } from '@sanity/icons/Bill'
 export const ORDER_STATUSES = [
   { title: 'Aguardando pagamento', value: 'aguardando_pagamento' },
   { title: 'Pago', value: 'pago' },
+  { title: 'Pago, com conflito (reembolsar)', value: 'pago_conflito' },
   { title: 'Enviado', value: 'enviado' },
   { title: 'Entregue', value: 'entregue' },
   { title: 'Expirado', value: 'expirado' },
@@ -110,6 +111,16 @@ export const order = defineType({
     defineField({ name: 'shippingTotal', title: 'Frete (R$)', type: 'number', readOnly: true }),
     defineField({ name: 'total', title: 'Total (R$)', type: 'number', readOnly: true }),
     defineField({
+      name: 'conflictNote',
+      title: 'Conflito',
+      type: 'text',
+      rows: 2,
+      readOnly: true,
+      description:
+        'Pagamento recebido depois que a peça foi vendida para outra pessoa. Cancele a venda no app da InfinitePay para reembolsar.',
+      hidden: ({ document }) => document?.status !== 'pago_conflito',
+    }),
+    defineField({
       name: 'payment',
       title: 'Pagamento',
       type: 'object',
@@ -117,12 +128,15 @@ export const order = defineType({
       options: { collapsible: true, collapsed: true },
       fields: [
         defineField({ name: 'provider', title: 'Provedor', type: 'string' }),
-        defineField({ name: 'chargeId', title: 'Id da cobrança', type: 'string' }),
-        defineField({ name: 'brCode', title: 'Pix copia e cola', type: 'text', rows: 2 }),
-        defineField({ name: 'brCodeBase64', title: 'QR Code', type: 'text', hidden: true }),
-        defineField({ name: 'expiresAt', title: 'Expira em', type: 'datetime' }),
+        defineField({ name: 'checkoutUrl', title: 'Link de pagamento', type: 'url', hidden: true }),
+        defineField({ name: 'expiresAt', title: 'Reserva até', type: 'datetime' }),
+        defineField({ name: 'captureMethod', title: 'Forma de pagamento', type: 'string' }),
+        defineField({ name: 'installments', title: 'Parcelas', type: 'number' }),
+        defineField({ name: 'paidAmount', title: 'Valor pago pelo cliente (R$)', type: 'number' }),
+        defineField({ name: 'slug', title: 'Código da fatura', type: 'string' }),
+        defineField({ name: 'transactionNsu', title: 'Id da transação', type: 'string' }),
+        defineField({ name: 'receiptUrl', title: 'Comprovante', type: 'url' }),
         defineField({ name: 'paidAt', title: 'Pago em', type: 'datetime' }),
-        defineField({ name: 'devMode', title: 'Ambiente de teste', type: 'boolean' }),
       ],
     }),
     defineField({

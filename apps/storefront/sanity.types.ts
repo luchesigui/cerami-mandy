@@ -32,6 +32,7 @@ export type Order = {
   status?:
     | "aguardando_pagamento"
     | "pago"
+    | "pago_conflito"
     | "enviado"
     | "entregue"
     | "expirado"
@@ -69,14 +70,18 @@ export type Order = {
   subtotal?: number
   shippingTotal?: number
   total?: number
+  conflictNote?: string
   payment?: {
     provider?: string
-    chargeId?: string
-    brCode?: string
-    brCodeBase64?: string
+    checkoutUrl?: string
     expiresAt?: string
+    captureMethod?: string
+    installments?: number
+    paidAmount?: number
+    slug?: string
+    transactionNsu?: string
+    receiptUrl?: string
     paidAt?: string
-    devMode?: boolean
   }
   processedEvents?: Array<string>
   accessToken?: string
@@ -468,6 +473,7 @@ export type ORDER_BY_ID_QUERY_RESULT = {
     | "entregue"
     | "enviado"
     | "expirado"
+    | "pago_conflito"
     | "pago"
     | null
   accessToken: string | null
@@ -503,71 +509,15 @@ export type ORDER_BY_ID_QUERY_RESULT = {
   total: number | null
   payment: {
     provider?: string
-    chargeId?: string
-    brCode?: string
-    brCodeBase64?: string
+    checkoutUrl?: string
     expiresAt?: string
+    captureMethod?: string
+    installments?: number
+    paidAmount?: number
+    slug?: string
+    transactionNsu?: string
+    receiptUrl?: string
     paidAt?: string
-    devMode?: boolean
-  } | null
-  processedEvents: Array<string> | null
-  createdAt: string | null
-} | null
-
-// Source: ../apps/storefront/src/sanity/queries.ts
-// Variable: ORDER_BY_CHARGE_QUERY
-// Query: *[_type == "order" && payment.chargeId == $chargeId][0] {   _id,  _rev,  number,  status,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt }
-export type ORDER_BY_CHARGE_QUERY_RESULT = {
-  _id: string
-  _rev: string
-  number: string | null
-  status:
-    | "aguardando_pagamento"
-    | "cancelado"
-    | "entregue"
-    | "enviado"
-    | "expirado"
-    | "pago"
-    | null
-  accessToken: string | null
-  customer: {
-    name?: string
-    email?: string
-    phone?: string
-    cpf?: string
-  } | null
-  address: {
-    cep?: string
-    street?: string
-    number?: string
-    complement?: string
-    neighborhood?: string
-    city?: string
-    state?: string
-  } | null
-  items: Array<{
-    productId: string | null
-    title: string | null
-    price: number | null
-  }> | null
-  shipping: {
-    serviceId?: number
-    company?: string
-    name?: string
-    price?: number
-    deliveryDays?: number
-  } | null
-  subtotal: number | null
-  shippingTotal: number | null
-  total: number | null
-  payment: {
-    provider?: string
-    chargeId?: string
-    brCode?: string
-    brCodeBase64?: string
-    expiresAt?: string
-    paidAt?: string
-    devMode?: boolean
   } | null
   processedEvents: Array<string> | null
   createdAt: string | null
@@ -582,7 +532,6 @@ declare global {
     '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': RELATED_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "product" && _id in $ids] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    "image": images[0],\n    "available": status == "active" && inventory > 0 && !(defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())),\n    "reserved": status == "active" && inventory > 0 && defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    shipping,\n    _rev\n  }\n': BAG_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "order" && _id == $id][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_ID_QUERY_RESULT
-    '\n  *[_type == "order" && payment.chargeId == $chargeId][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_CHARGE_QUERY_RESULT
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

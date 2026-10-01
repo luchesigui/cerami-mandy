@@ -1,6 +1,6 @@
 "use client"
 
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 import {
@@ -84,7 +84,6 @@ const CheckoutTemplate = () => {
   const lastLookup = useRef("")
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const router = useRouter()
   const { countryCode } = useParams<{ countryCode: string }>()
 
   useEffect(() => {
@@ -206,6 +205,7 @@ const CheckoutTemplate = () => {
           },
           productIds: bag.ids,
           shippingServiceId: bag.shipping.id,
+          countryCode,
         }),
       })
       const data = (await res.json()) as {
@@ -220,8 +220,11 @@ const CheckoutTemplate = () => {
         setSubmitting(false)
         return
       }
-      router.push(
-        `/${countryCode}/pedido/${data.orderId}?t=${encodeURIComponent(data.accessToken)}`
+      // Straight to InfinitePay; the order page is where it sends the customer back.
+      const token = encodeURIComponent(data.accessToken)
+      const orderPage = `/${countryCode}/pedido/${data.orderId}`
+      window.location.assign(
+        `/api/pedidos/${data.orderId}/pagar?t=${token}&back=${encodeURIComponent(orderPage)}`
       )
     } catch {
       setSubmitError("Não foi possível finalizar o pedido. Tente novamente.")
@@ -295,7 +298,7 @@ const CheckoutTemplate = () => {
             disabled={!canPay}
             className="w-full rounded-full bg-[#FCAB42] px-10 py-3.5 text-base font-bold uppercase disabled:cursor-not-allowed disabled:bg-[#FCAB42]/50"
           >
-            {submitting ? "Gerando Pix..." : "Pagar com Pix"}
+            {submitting ? "Reservando..." : "Reservar e pagar"}
           </button>
           {submitError ? (
             <p className="mt-2 text-center text-xs font-bold text-red-700" role="alert">
@@ -309,7 +312,7 @@ const CheckoutTemplate = () => {
                   ? "Escolha o frete para continuar."
                   : !formValid
                     ? "Preencha seus dados e o endereço para continuar."
-                    : "A peça fica reservada para você por 30 minutos."}
+                    : "Pix ou cartão em até 12x. A peça fica reservada por 30 minutos."}
             </p>
           )}
         </div>

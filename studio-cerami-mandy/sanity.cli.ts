@@ -5,7 +5,9 @@ export default defineCliConfig({
     projectId: 'ovaynp65',
     dataset: 'production',
   },
+  studioHost: 'ceramimandy',
   deployment: {
+    appId: 'm2unt00j62jxhguzp2alowxm',
     /**
      * Enable auto-updates for studios.
      * Learn more at https://www.sanity.io/docs/studio/latest-version-of-sanity#k47faf43faf56

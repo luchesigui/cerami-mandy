@@ -11,12 +11,13 @@ import {
   maskPhone,
 } from "@lib/br-documents"
 import {
-  checkPixCharge,
-  createPixCharge,
+  checkPayment,
+  createCheckoutLink,
   PaymentProviderError,
-} from "@lib/payments/abacatepay"
+} from "@lib/payments/infinitepay"
 import { safeEqual } from "@lib/safe-equal"
 import { isValidCep, normalizeCep } from "@lib/shipping/cep"
+import { getBaseURL } from "@lib/util/env"
 import {
   quoteShipping,
   ShippingQuoteError,
@@ -24,7 +25,6 @@ import {
 } from "@lib/shipping/melhor-envio"
 import {
   BAG_PRODUCTS_QUERY,
-  ORDER_BY_CHARGE_QUERY,
   ORDER_BY_ID_QUERY,
 } from "@/sanity/queries"
 import { serverClient } from "@/sanity/server-client"
@@ -34,9 +34,9 @@ import type { ORDER_BY_ID_QUERY_RESULT } from "../../../sanity.types"
 
 export type Order = NonNullable<ORDER_BY_ID_QUERY_RESULT>
 
-const PIX_EXPIRES_IN_SECONDS = 30 * 60
-// The reservation outlives the Pix so nobody can reserve a piece that can still be paid.
-const RESERVATION_GRACE_MS = 5 * 60 * 1000
+// InfinitePay links never expire, so the reservation window is ours to enforce:
+// /pedido/[id]/pagar only redirects to the link while it is valid.
+const RESERVATION_MS = 30 * 60 * 1000
 const COUNTER_ID = "order.counter"
 const FIRST_ORDER_NUMBER = 1001
 
@@ -62,6 +62,7 @@ export type CheckoutInput = {
   }
   productIds: string[]
   shippingServiceId: number
+  countryCode: string
 }
 
 const str = (value: unknown, max = 200) =>
@@ -95,6 +96,7 @@ export function parseCheckoutInput(body: unknown): CheckoutInput {
         )
       : [],
     shippingServiceId: Number(b.shippingServiceId),
+    countryCode: /^[a-z]{2}$/.test(str(b.countryCode, 2)) ? str(b.countryCode, 2) : "br",
   }
 
   const problems = [
@@ -207,9 +209,7 @@ export async function createOrder(input: CheckoutInput) {
   const accessToken = crypto.randomBytes(24).toString("base64url")
   const number = await nextOrderNumber()
   const now = new Date()
-  const reservedUntil = new Date(
-    now.getTime() + PIX_EXPIRES_IN_SECONDS * 1000 + RESERVATION_GRACE_MS
-  ).toISOString()
+  const reservedUntil = new Date(now.getTime() + RESERVATION_MS).toISOString()
 
   const drafts = await existingDrafts(items.map((item) => item.id))
   const tx = writeClient.transaction().create({
@@ -264,38 +264,52 @@ export async function createOrder(input: CheckoutInput) {
   }
 
   try {
-    const charge = await createPixCharge({
-      amountCents: toCents(total),
-      expiresIn: PIX_EXPIRES_IN_SECONDS,
-      description: `Cerami Mandy - pedido ${number}`,
+    const baseUrl = getBaseURL().replace(/\/$/, "")
+    const publicId = orderId.replace(/^order\./, "")
+    const webhookSecret = process.env.INFINITEPAY_WEBHOOK_SECRET
+    const checkoutUrl = await createCheckoutLink({
+      orderNsu: publicId,
+      items: [
+        ...items.map((item) => ({
+          description: item.title,
+          priceCents: toCents(item.price),
+        })),
+        {
+          description: `Frete ${shippingOption.company} ${shippingOption.name}`,
+          priceCents: toCents(shippingOption.price),
+        },
+      ],
       customer: {
         name: input.customer.name,
         email: input.customer.email,
-        cellphone: maskPhone(input.customer.phone),
-        taxId: maskCpf(input.customer.cpf),
+        phone: maskPhone(input.customer.phone),
       },
-      externalId: orderId,
-      metadata: { orderId, orderNumber: number },
+      address: {
+        cep: input.address.cep,
+        street: input.address.street,
+        neighborhood: input.address.neighborhood,
+        number: input.address.number,
+        complement: input.address.complement,
+      },
+      redirectUrl: `${baseUrl}/${input.countryCode}/pedido/${publicId}?t=${accessToken}`,
+      // InfinitePay can only reach a public https URL; locally the return page confirms.
+      webhookUrl:
+        baseUrl.startsWith("https://") && webhookSecret
+          ? `${baseUrl}/api/webhooks/infinitepay?secret=${webhookSecret}`
+          : undefined,
     })
 
     await writeClient
       .patch(orderId)
       .set({
-        payment: {
-          provider: "abacatepay",
-          chargeId: charge.id,
-          brCode: charge.brCode,
-          brCodeBase64: charge.brCodeBase64,
-          expiresAt: charge.expiresAt,
-          devMode: charge.devMode,
-        },
+        payment: { provider: "infinitepay", checkoutUrl, expiresAt: reservedUntil },
       })
       .commit()
   } catch (err) {
-    console.error("[checkout] pix charge failed:", (err as Error).message)
+    console.error("[checkout] payment link failed:", (err as Error).message)
     await closeOrder(orderId, "cancelado")
     if (err instanceof PaymentProviderError) {
-      throw new OrderError("Não foi possível gerar o Pix agora. Tente novamente.", 502)
+      throw new OrderError("Não foi possível gerar o pagamento agora. Tente novamente.", 502)
     }
     throw err
   }
@@ -305,10 +319,6 @@ export async function createOrder(input: CheckoutInput) {
 
 export function getOrder(orderId: string) {
   return writeClient.fetch(ORDER_BY_ID_QUERY, { id: orderId })
-}
-
-export function getOrderByCharge(chargeId: string) {
-  return writeClient.fetch(ORDER_BY_CHARGE_QUERY, { chargeId })
 }
 
 // Releases reservations still held by this order and sets its final status.
@@ -336,10 +346,19 @@ async function closeOrder(orderId: string, status: "cancelado" | "expirado") {
   await tx.commit()
 }
 
-export async function markOrderPaid(orderId: string, eventId?: string) {
+export type PaymentDetails = {
+  transactionNsu: string
+  slug: string
+  captureMethod: string
+  installments: number
+  paidAmount: number
+  receiptUrl?: string
+}
+
+async function markOrderPaid(orderId: string, details: PaymentDetails) {
   const order = await getOrder(orderId)
   if (!order) return null
-  if (eventId && order.processedEvents?.includes(eventId)) return order
+  if (order.processedEvents?.includes(details.transactionNsu)) return order
   if (order.status !== "aguardando_pagamento" && order.status !== "expirado") {
     return order
   }
@@ -347,43 +366,114 @@ export async function markOrderPaid(orderId: string, eventId?: string) {
   const productIds = (order.items ?? []).flatMap((item) =>
     item.productId ? [item.productId] : []
   )
-  const drafts = await existingDrafts(productIds)
-  const paidAt = new Date().toISOString()
-
-  const tx = writeClient.transaction().patch(orderId, (patch) => {
-    patch = patch
-      .ifRevisionId(order._rev)
-      .set({ status: "pago", "payment.paidAt": paidAt })
-    return eventId
-      ? patch.setIfMissing({ processedEvents: [] }).append("processedEvents", [eventId])
-      : patch
+  const products = await writeClient.fetch<
+    { _id: string; title?: string; inventory?: number; reservedBy?: string; reservedUntil?: string }[]
+  >(`*[_id in $ids]{ _id, title, inventory, reservedBy, reservedUntil }`, {
+    ids: productIds,
   })
-  for (const id of [...productIds, ...productIds.map((p) => `drafts.${p}`)]) {
-    if (id.startsWith("drafts.") && !drafts.has(id)) continue
-    tx.patch(id, (patch) =>
-      patch.set({ inventory: 0, soldAt: paidAt }).unset(["reservedUntil", "reservedBy"])
-    )
+  const now = new Date()
+  // A late payment (the customer kept the checkout tab open past the reservation)
+  // can collide with someone else's purchase of the same unique piece.
+  const conflicting = products.filter(
+    (p) =>
+      !p.inventory ||
+      (p.reservedBy &&
+        p.reservedBy !== orderId &&
+        p.reservedUntil &&
+        new Date(p.reservedUntil) > now)
+  )
+
+  const paidAt = now.toISOString()
+  const payment = {
+    "payment.paidAt": paidAt,
+    "payment.transactionNsu": details.transactionNsu,
+    "payment.slug": details.slug,
+    "payment.captureMethod": details.captureMethod,
+    "payment.installments": details.installments,
+    "payment.paidAmount": details.paidAmount / 100,
+    ...(details.receiptUrl ? { "payment.receiptUrl": details.receiptUrl } : {}),
   }
+
+  const tx = writeClient.transaction().patch(orderId, (patch) =>
+    patch
+      .ifRevisionId(order._rev)
+      .set({
+        ...payment,
+        status: conflicting.length ? "pago_conflito" : "pago",
+        ...(conflicting.length
+          ? {
+              conflictNote: `Já vendida(s) ou reservada(s) por outro pedido: ${conflicting
+                .map((p) => p.title)
+                .join(", ")}`,
+            }
+          : {}),
+      })
+      .setIfMissing({ processedEvents: [] })
+      .append("processedEvents", [details.transactionNsu])
+  )
+
+  if (!conflicting.length) {
+    const drafts = await existingDrafts(productIds)
+    for (const id of [...productIds, ...productIds.map((p) => `drafts.${p}`)]) {
+      if (id.startsWith("drafts.") && !drafts.has(id)) continue
+      tx.patch(id, (patch) =>
+        patch.set({ inventory: 0, soldAt: paidAt }).unset(["reservedUntil", "reservedBy"])
+      )
+    }
+  }
+
   await tx.commit()
-  console.info(`[orders] ${order.number} paid`)
+  console.info(
+    `[orders] ${order.number} ${conflicting.length ? "paid with conflict" : "paid"}`
+  )
   return getOrder(orderId)
 }
 
-// Asks AbacatePay for the charge status. Used by the webhook and by the order page,
-// so a missed webhook does not leave a paid order pending.
-export async function refreshOrderStatus(order: Order, eventId?: string) {
-  const chargeId = order.payment?.chargeId
-  if (order.status !== "aguardando_pagamento" || !chargeId) return order
+// Confirms a payment reported by the webhook or the redirect. Their data is only a
+// hint: payment_check is the source of truth, and it must cover the order total.
+export async function confirmPayment(
+  order: Order,
+  hint: { transactionNsu: string; slug: string; receiptUrl?: string }
+) {
+  if (!hint.transactionNsu || !hint.slug) return order
+  const check = await checkPayment({
+    orderNsu: order._id.replace(/^order\./, ""),
+    transactionNsu: hint.transactionNsu,
+    slug: hint.slug,
+  })
+  if (!check.paid || check.amount < toCents(order.total ?? 0)) {
+    console.warn(`[orders] ${order.number}: payment_check not paid`, check)
+    return order
+  }
+  return (
+    (await markOrderPaid(order._id, {
+      transactionNsu: hint.transactionNsu,
+      slug: hint.slug,
+      captureMethod: check.captureMethod,
+      installments: check.installments,
+      paidAmount: check.paidAmount,
+      receiptUrl: hint.receiptUrl,
+    })) ?? order
+  )
+}
 
-  const charge = await checkPixCharge(chargeId)
-  if (charge.status === "PAID" || charge.status === "APPROVED") {
-    return (await markOrderPaid(order._id, eventId)) ?? order
-  }
-  if (["EXPIRED", "CANCELLED", "FAILED"].includes(charge.status)) {
-    await closeOrder(order._id, "expirado")
-    return (await getOrder(order._id)) ?? order
-  }
-  return order
+// Ends the reservation once its window is over. A payment that still arrives later
+// goes through confirmPayment and is checked for conflicts.
+export async function expireIfOverdue(order: Order) {
+  const expiresAt = order.payment?.expiresAt
+  if (order.status !== "aguardando_pagamento" || !expiresAt) return order
+  if (new Date(expiresAt) > new Date()) return order
+  await closeOrder(order._id, "expirado")
+  return (await getOrder(order._id)) ?? order
+}
+
+export function canPay(order: Order) {
+  return (
+    order.status === "aguardando_pagamento" &&
+    !!order.payment?.checkoutUrl &&
+    !!order.payment.expiresAt &&
+    new Date(order.payment.expiresAt) > new Date()
+  )
 }
 
 export function hasOrderAccess(order: Order, token: string | null) {
@@ -405,15 +495,16 @@ export function toPublicOrder(order: Order) {
     subtotal: order.subtotal,
     shippingTotal: order.shippingTotal,
     total: order.total,
-    pix:
-      order.status === "aguardando_pagamento" && order.payment
+    expiresAt:
+      order.status === "aguardando_pagamento" ? order.payment?.expiresAt ?? null : null,
+    payment:
+      order.payment?.paidAt
         ? {
-            brCode: order.payment.brCode,
-            brCodeBase64: order.payment.brCodeBase64,
-            expiresAt: order.payment.expiresAt,
+            captureMethod: order.payment.captureMethod ?? "",
+            installments: order.payment.installments ?? 1,
+            receiptUrl: order.payment.receiptUrl ?? null,
           }
         : null,
-    devMode: !!order.payment?.devMode,
   }
 }
 

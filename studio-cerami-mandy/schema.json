@@ -86,6 +86,10 @@
             },
             {
               "type": "string",
+              "value": "pago_conflito"
+            },
+            {
+              "type": "string",
               "value": "enviado"
             },
             {
@@ -323,6 +327,13 @@
         },
         "optional": true
       },
+      "conflictNote": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "string"
+        },
+        "optional": true
+      },
       "payment": {
         "type": "objectAttribute",
         "value": {
@@ -335,21 +346,7 @@
               },
               "optional": true
             },
-            "chargeId": {
-              "type": "objectAttribute",
-              "value": {
-                "type": "string"
-              },
-              "optional": true
-            },
-            "brCode": {
-              "type": "objectAttribute",
-              "value": {
-                "type": "string"
-              },
-              "optional": true
-            },
-            "brCodeBase64": {
+            "checkoutUrl": {
               "type": "objectAttribute",
               "value": {
                 "type": "string"
@@ -363,17 +360,52 @@
               },
               "optional": true
             },
-            "paidAt": {
+            "captureMethod": {
               "type": "objectAttribute",
               "value": {
                 "type": "string"
               },
               "optional": true
             },
-            "devMode": {
+            "installments": {
               "type": "objectAttribute",
               "value": {
-                "type": "boolean"
+                "type": "number"
+              },
+              "optional": true
+            },
+            "paidAmount": {
+              "type": "objectAttribute",
+              "value": {
+                "type": "number"
+              },
+              "optional": true
+            },
+            "slug": {
+              "type": "objectAttribute",
+              "value": {
+                "type": "string"
+              },
+              "optional": true
+            },
+            "transactionNsu": {
+              "type": "objectAttribute",
+              "value": {
+                "type": "string"
+              },
+              "optional": true
+            },
+            "receiptUrl": {
+              "type": "objectAttribute",
+              "value": {
+                "type": "string"
+              },
+              "optional": true
+            },
+            "paidAt": {
+              "type": "objectAttribute",
+              "value": {
+                "type": "string"
               },
               "optional": true
             }

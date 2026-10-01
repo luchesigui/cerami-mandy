@@ -1,5 +1,6 @@
 "use client"
 
+import { useParams, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 
 import type { PublicOrder } from "@lib/orders"
@@ -8,6 +9,11 @@ import LocalizedClientLink from "@modules/common/components/localized-client-lin
 import { formatShippingPrice } from "@/sanity/format"
 
 const POLL_INTERVAL_MS = 5000
+
+const CAPTURE_METHODS: Record<string, string> = {
+  pix: "Pix",
+  credit_card: "cartão de crédito",
+}
 
 type Props = { orderId: string; token: string }
 
@@ -56,13 +62,26 @@ const Summary = ({ order }: { order: PublicOrder }) => (
 
 const OrderTemplate = ({ orderId, token }: Props) => {
   const { clear } = useBag()
+  const { countryCode } = useParams<{ countryCode: string }>()
+  const searchParams = useSearchParams()
   const [order, setOrder] = useState<PublicOrder | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
-  const [simulating, setSimulating] = useState(false)
-  const countdown = useCountdown(order?.pix?.expiresAt)
+  const countdown = useCountdown(order?.expiresAt)
 
-  const endpoint = `/api/pedidos/${orderId}?t=${encodeURIComponent(token)}`
+  // On the way back from InfinitePay the URL carries transaction_nsu and slug,
+  // which the API uses to confirm the payment.
+  const returnParams = ["transaction_nsu", "slug", "receipt_url"]
+    .flatMap((key) => {
+      const value = searchParams.get(key)
+      return value ? [`${key}=${encodeURIComponent(value)}`] : []
+    })
+    .join("&")
+  const endpoint = `/api/pedidos/${orderId}?t=${encodeURIComponent(token)}${
+    returnParams ? `&${returnParams}` : ""
+  }`
+  const payUrl = `/api/pedidos/${orderId}/pagar?t=${encodeURIComponent(
+    token
+  )}&back=${encodeURIComponent(`/${countryCode}/pedido/${orderId}`)}`
 
   const load = useCallback(async () => {
     const res = await fetch(endpoint, { cache: "no-store" })
@@ -77,6 +96,7 @@ const OrderTemplate = ({ orderId, token }: Props) => {
     load().catch(() => setError("Não foi possível carregar o pedido."))
   }, [load])
 
+  // While pending, pick up a webhook confirmation or the end of the reservation.
   useEffect(() => {
     if (order?.status !== "aguardando_pagamento") return
     const timer = setInterval(() => {
@@ -85,30 +105,15 @@ const OrderTemplate = ({ orderId, token }: Props) => {
     return () => clearInterval(timer)
   }, [order?.status, load])
 
+  const paid =
+    order?.status === "pago" ||
+    order?.status === "pago_conflito" ||
+    order?.status === "enviado" ||
+    order?.status === "entregue"
+
   useEffect(() => {
-    if (order?.status === "pago") clear()
-  }, [order?.status, clear])
-
-  const copyPix = async () => {
-    if (!order?.pix?.brCode) return
-    try {
-      await navigator.clipboard.writeText(order.pix.brCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 3000)
-    } catch {
-      setCopied(false)
-    }
-  }
-
-  const simulate = async () => {
-    setSimulating(true)
-    const res = await fetch(
-      `/api/pedidos/${orderId}/simular?t=${encodeURIComponent(token)}`,
-      { method: "POST" }
-    ).catch(() => null)
-    if (res?.ok) setOrder((await res.json()) as PublicOrder)
-    setSimulating(false)
-  }
+    if (paid) clear()
+  }, [paid, clear])
 
   if (error) {
     return (
@@ -126,71 +131,79 @@ const OrderTemplate = ({ orderId, token }: Props) => {
     )
   }
 
+  const method = order.payment ? CAPTURE_METHODS[order.payment.captureMethod] : null
+
   return (
     <div className="mx-auto max-w-[560px] space-y-8 px-4 py-12 text-[#13110C]">
       <p className="text-xs font-bold uppercase tracking-wide text-[#13110C]/60">
         Pedido {order.number}
       </p>
 
-      {order.status === "aguardando_pagamento" && order.pix && (
+      {order.status === "aguardando_pagamento" && (
         <section className="space-y-5 text-center">
-          <h1 className="text-2xl font-bold">Pague com Pix para confirmar</h1>
+          <h1 className="text-2xl font-bold">Sua peça está reservada</h1>
           <p className="text-sm text-[#13110C]/70">
-            Sua peça está reservada. O código expira em{" "}
-            <strong>{countdown}</strong>.
+            Conclua o pagamento em até <strong>{countdown}</strong>. Você pode pagar
+            com Pix ou cartão de crédito em até 12x, no ambiente seguro da
+            InfinitePay.
           </p>
-          {order.pix.brCodeBase64 && (
-            // Data URL from AbacatePay; next/image adds nothing here.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={order.pix.brCodeBase64}
-              alt="QR Code Pix"
-              className="mx-auto h-[240px] w-[240px] rounded-2xl border border-[#13110C]/10 bg-white p-3"
-            />
-          )}
-          <button
-            type="button"
-            onClick={copyPix}
-            className="rounded-full bg-[#FCAB42] px-10 py-3.5 text-base font-bold uppercase"
+          <a
+            href={payUrl}
+            className="inline-block rounded-full bg-[#FCAB42] px-10 py-3.5 text-base font-bold uppercase"
           >
-            {copied ? "Código copiado!" : "Copiar código Pix"}
-          </button>
+            Ir para pagamento
+          </a>
           <p className="text-xs text-[#13110C]/60">
-            Esta página atualiza sozinha quando o pagamento for confirmado.
+            Já pagou? Esta página atualiza sozinha quando o pagamento for confirmado.
           </p>
-          {order.devMode && (
-            <button
-              type="button"
-              onClick={simulate}
-              disabled={simulating}
-              className="rounded-full border border-dashed border-[#13110C]/40 px-6 py-2 text-xs uppercase disabled:opacity-50"
-            >
-              {simulating ? "Simulando..." : "Simular pagamento (teste)"}
-            </button>
-          )}
         </section>
       )}
 
-      {(order.status === "pago" || order.status === "enviado" || order.status === "entregue") && (
+      {paid && order.status !== "pago_conflito" && (
         <section className="space-y-3 text-center">
           <h1 className="text-2xl font-bold">Pedido confirmado!</h1>
           <p className="text-sm text-[#13110C]/70">
-            Obrigada, {order.customerName.split(" ")[0]}! Recebemos seu pagamento e
-            sua peça será embalada com carinho. Prazo de entrega: até{" "}
+            Obrigada, {order.customerName.split(" ")[0]}! Recebemos seu pagamento
+            {method ? ` via ${method}` : ""}
+            {order.payment && order.payment.installments > 1
+              ? ` em ${order.payment.installments}x`
+              : ""}{" "}
+            e sua peça será embalada com carinho. Prazo de entrega: até{" "}
             {order.shipping?.deliveryDays} dias úteis após o envio.
           </p>
+          {order.payment?.receiptUrl && (
+            <a
+              href={order.payment.receiptUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-sm underline underline-offset-2"
+            >
+              Ver comprovante
+            </a>
+          )}
           <p className="text-xs text-[#13110C]/60">
             Guarde o link desta página para acompanhar seu pedido.
           </p>
         </section>
       )}
 
+      {order.status === "pago_conflito" && (
+        <section className="space-y-3 text-center">
+          <h1 className="text-2xl font-bold">Recebemos seu pagamento, mas...</h1>
+          <p className="text-sm text-[#13110C]/70">
+            A reserva tinha expirado e a peça foi vendida para outra pessoa antes da
+            confirmação. Vamos estornar o valor integral e entrar em contato pelo
+            e-mail {order.email}. Desculpe pelo transtorno.
+          </p>
+        </section>
+      )}
+
       {(order.status === "expirado" || order.status === "cancelado") && (
         <section className="space-y-5 text-center">
-          <h1 className="text-2xl font-bold">O Pix expirou</h1>
+          <h1 className="text-2xl font-bold">A reserva expirou</h1>
           <p className="text-sm text-[#13110C]/70">
-            O pagamento não foi concluído a tempo e a reserva foi liberada. Se a
-            peça ainda estiver disponível, é só tentar de novo.
+            O pagamento não foi concluído a tempo e a peça foi liberada. Se ela ainda
+            estiver disponível, é só tentar de novo.
           </p>
           <LocalizedClientLink
             href="/sacola"

@@ -24,6 +24,9 @@ export const structure: StructureResolver = (S) =>
             .title('Pedidos')
             .items([
               S.listItem()
+                .title('Pagos com conflito (reembolsar)')
+                .child(orderList(S, 'Pagos com conflito', 'status == "pago_conflito"')),
+              S.listItem()
                 .title('Pagos, a enviar')
                 .child(orderList(S, 'Pagos, a enviar', 'status == "pago"')),
               S.listItem()
