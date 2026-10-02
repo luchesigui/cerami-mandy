@@ -1,5 +1,6 @@
 import type { StructureResolver } from 'sanity/structure'
 import { BillIcon } from '@sanity/icons/Bill'
+import { UsersIcon } from '@sanity/icons/Users'
 
 const orderList = (S: Parameters<StructureResolver>[0], title: string, filter: string) =>
   S.documentList()
@@ -38,5 +39,16 @@ export const structure: StructureResolver = (S) =>
               S.divider(),
               S.listItem().title('Todos').child(orderList(S, 'Todos os pedidos', 'true')),
             ]),
+        ),
+      S.divider(),
+      S.listItem()
+        .title('Clientes')
+        .icon(UsersIcon)
+        .child(
+          S.documentList()
+            .title('Clientes')
+            .schemaType('customer')
+            .filter('_type == "customer"')
+            .defaultOrdering([{ field: 'createdAt', direction: 'desc' }]),
         ),
     ])

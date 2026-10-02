@@ -15,6 +15,42 @@
 export declare const internalGroqTypeReferenceTo: unique symbol
 
 // Source: schema.json
+export type AuthOtp = {
+  _id: string
+  _type: "authOtp"
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  email?: string
+  codeHash?: string
+  expiresAt?: string
+  attempts?: number
+  createdAt?: string
+}
+
+export type Customer = {
+  _id: string
+  _type: "customer"
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  name?: string
+  email?: string
+  phone?: string
+  cpf?: string
+  address?: {
+    cep?: string
+    street?: string
+    number?: string
+    complement?: string
+    neighborhood?: string
+    city?: string
+    state?: string
+  }
+  createdAt?: string
+  updatedAt?: string
+}
+
 export type ProductReference = {
   _ref: string
   _type: "reference"
@@ -301,6 +337,8 @@ export type Geopoint = {
 }
 
 export type AllSanitySchemaTypes =
+  | AuthOtp
+  | Customer
   | ProductReference
   | Order
   | SanityImageAssetReference
@@ -528,6 +566,126 @@ export type ORDER_BY_ID_QUERY_RESULT = {
   createdAt: string | null
 } | null
 
+// Source: ../apps/storefront/src/sanity/queries.ts
+// Variable: ORDERS_BY_CUSTOMER_EMAIL_QUERY
+// Query: *[_type == "order" && lower(customer.email) == lower($email)] | order(createdAt desc) {      _id,  _rev,  number,  status,  trackingCode,  conflictNote,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt  }
+export type ORDERS_BY_CUSTOMER_EMAIL_QUERY_RESULT = Array<{
+  _id: string
+  _rev: string
+  number: string | null
+  status:
+    | "aguardando_pagamento"
+    | "cancelado"
+    | "entregue"
+    | "enviado"
+    | "expirado"
+    | "pago_conflito"
+    | "pago"
+    | null
+  trackingCode: string | null
+  conflictNote: string | null
+  accessToken: string | null
+  customer: {
+    name?: string
+    email?: string
+    phone?: string
+    cpf?: string
+  } | null
+  address: {
+    cep?: string
+    street?: string
+    number?: string
+    complement?: string
+    neighborhood?: string
+    city?: string
+    state?: string
+  } | null
+  items: Array<{
+    productId: string | null
+    title: string | null
+    price: number | null
+  }> | null
+  shipping: {
+    serviceId?: number
+    company?: string
+    name?: string
+    price?: number
+    deliveryDays?: number
+  } | null
+  subtotal: number | null
+  shippingTotal: number | null
+  total: number | null
+  payment: {
+    provider?: string
+    checkoutUrl?: string
+    expiresAt?: string
+    captureMethod?: string
+    installments?: number
+    paidAmount?: number
+    slug?: string
+    transactionNsu?: string
+    receiptUrl?: string
+    paidAt?: string
+  } | null
+  processedEvents: Array<string> | null
+  createdAt: string | null
+}>
+
+// Source: ../apps/storefront/src/sanity/queries.ts
+// Variable: CUSTOMER_BY_EMAIL_QUERY
+// Query: *[_type == "customer" && lower(email) == lower($email)][0] {    _id,    name,    email,    phone,    cpf,    address,    createdAt,    updatedAt  }
+export type CUSTOMER_BY_EMAIL_QUERY_RESULT = {
+  _id: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  cpf: string | null
+  address: {
+    cep?: string
+    street?: string
+    number?: string
+    complement?: string
+    neighborhood?: string
+    city?: string
+    state?: string
+  } | null
+  createdAt: string | null
+  updatedAt: string | null
+} | null
+
+// Source: ../apps/storefront/src/sanity/queries.ts
+// Variable: CUSTOMER_BY_ID_QUERY
+// Query: *[_type == "customer" && _id == $id][0] {    _id,    name,    email,    phone,    cpf,    address,    createdAt,    updatedAt  }
+export type CUSTOMER_BY_ID_QUERY_RESULT = {
+  _id: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  cpf: string | null
+  address: {
+    cep?: string
+    street?: string
+    number?: string
+    complement?: string
+    neighborhood?: string
+    city?: string
+    state?: string
+  } | null
+  createdAt: string | null
+  updatedAt: string | null
+} | null
+
+// Source: ../apps/storefront/src/sanity/queries.ts
+// Variable: AUTH_OTP_BY_ID_QUERY
+// Query: *[_type == "authOtp" && _id == $id][0] {    _id,    email,    codeHash,    expiresAt,    attempts  }
+export type AUTH_OTP_BY_ID_QUERY_RESULT = {
+  _id: string
+  email: string | null
+  codeHash: string | null
+  expiresAt: string | null
+  attempts: number | null
+} | null
+
 // Query TypeMap
 declare global {
   interface SanityQueries {
@@ -537,6 +695,10 @@ declare global {
     '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    "image": images[0]\n  }\n': RELATED_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "product" && _id in $ids] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    "image": images[0],\n    "available": status == "active" && inventory > 0 && !(defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())),\n    "reserved": status == "active" && inventory > 0 && defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    shipping,\n    _rev\n  }\n': BAG_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "order" && _id == $id][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_ID_QUERY_RESULT
+    '\n  *[_type == "order" && lower(customer.email) == lower($email)] | order(createdAt desc) {\n    \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n\n  }\n': ORDERS_BY_CUSTOMER_EMAIL_QUERY_RESULT
+    '\n  *[_type == "customer" && lower(email) == lower($email)][0] {\n    _id,\n    name,\n    email,\n    phone,\n    cpf,\n    address,\n    createdAt,\n    updatedAt\n  }\n': CUSTOMER_BY_EMAIL_QUERY_RESULT
+    '\n  *[_type == "customer" && _id == $id][0] {\n    _id,\n    name,\n    email,\n    phone,\n    cpf,\n    address,\n    createdAt,\n    updatedAt\n  }\n': CUSTOMER_BY_ID_QUERY_RESULT
+    '\n  *[_type == "authOtp" && _id == $id][0] {\n    _id,\n    email,\n    codeHash,\n    expiresAt,\n    attempts\n  }\n': AUTH_OTP_BY_ID_QUERY_RESULT
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

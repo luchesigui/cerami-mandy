@@ -16,6 +16,7 @@ import {
   PaymentProviderError,
 } from "@lib/payments/infinitepay"
 import { safeEqual } from "@lib/safe-equal"
+import { getOrCreateCustomer } from "@lib/auth/customer"
 import {
   sendOrderConfirmationEmail,
   sendPaymentConflictAlertEmail,
@@ -321,6 +322,15 @@ export async function createOrder(input: CheckoutInput) {
         payment: { provider: "infinitepay", checkoutUrl, expiresAt: reservedUntil },
       })
       .commit()
+
+    // Ensure customer account is created or updated in Sanity
+    getOrCreateCustomer({
+      name: input.customer.name,
+      email: input.customer.email,
+      phone: maskPhone(input.customer.phone),
+      cpf: maskCpf(input.customer.cpf),
+      address: input.address,
+    }).catch((err) => console.error("[checkout] failed to create/update customer:", err))
   } catch (err) {
     console.error("[checkout] payment link failed:", (err as Error).message)
     await closeOrder(orderId, "cancelado")
@@ -543,6 +553,7 @@ export function toPublicOrder(order: Order) {
             receiptUrl: order.payment.receiptUrl ?? null,
           }
         : null,
+    createdAt: order.createdAt ?? null,
   }
 }
 

@@ -2,13 +2,13 @@
 
 import { Popover, PopoverPanel, Transition } from "@headlessui/react"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import { Fragment } from "react"
+import { Fragment, useEffect, useState } from "react"
 
-const SideMenuItems = {
-  Início: "/",
-  Peças: "/#catalogo",
-  Sacola: "/sacola",
-}
+const BASE_MENU_ITEMS = [
+  { name: "Início", href: "/" },
+  { name: "Peças", href: "/#catalogo" },
+  { name: "Sacola", href: "/sacola" },
+]
 
 const CloseIcon = () => (
   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5" aria-hidden="true">
@@ -17,6 +17,20 @@ const CloseIcon = () => (
 )
 
 const SideMenu = () => {
+  const [session, setSession] = useState<{ authenticated: boolean; name?: string } | null>(null)
+
+  useEffect(() => {
+    fetch("/api/auth/sessao")
+      .then((res) => res.json())
+      .then((data) => {
+        setSession({
+          authenticated: !!data.authenticated,
+          name: data.customer?.name?.split(" ")[0] || undefined,
+        })
+      })
+      .catch(() => setSession({ authenticated: false }))
+  }, [])
+
   return (
     <div className="h-full">
       <div className="flex items-center h-full">
@@ -68,7 +82,13 @@ const SideMenu = () => {
 
                       {/* Lista de links com divisores wireframe */}
                       <ul className="flex flex-col divide-y divide-[#010204] border-b border-[#010204]">
-                        {Object.entries(SideMenuItems).map(([name, href]) => {
+                        {[
+                          ...BASE_MENU_ITEMS,
+                          {
+                            name: session?.authenticated ? "Minha Conta" : "Entrar",
+                            href: session?.authenticated ? "/conta" : "/entrar",
+                          },
+                        ].map(({ name, href }) => {
                           return (
                             <li key={name}>
                               <LocalizedClientLink

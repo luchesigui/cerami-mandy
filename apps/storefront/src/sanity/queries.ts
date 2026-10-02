@@ -101,3 +101,45 @@ const ORDER_FIELDS = `
 export const ORDER_BY_ID_QUERY = defineQuery(`
   *[_type == "order" && _id == $id][0] { ${ORDER_FIELDS} }
 `)
+
+export const ORDERS_BY_CUSTOMER_EMAIL_QUERY = defineQuery(`
+  *[_type == "order" && lower(customer.email) == lower($email)] | order(createdAt desc) {
+    ${ORDER_FIELDS}
+  }
+`)
+
+export const CUSTOMER_BY_EMAIL_QUERY = defineQuery(`
+  *[_type == "customer" && lower(email) == lower($email)][0] {
+    _id,
+    name,
+    email,
+    phone,
+    cpf,
+    address,
+    createdAt,
+    updatedAt
+  }
+`)
+
+export const CUSTOMER_BY_ID_QUERY = defineQuery(`
+  *[_type == "customer" && _id == $id][0] {
+    _id,
+    name,
+    email,
+    phone,
+    cpf,
+    address,
+    createdAt,
+    updatedAt
+  }
+`)
+
+export const AUTH_OTP_BY_ID_QUERY = defineQuery(`
+  *[_type == "authOtp" && _id == $id][0] {
+    _id,
+    email,
+    codeHash,
+    expiresAt,
+    attempts
+  }
+`)

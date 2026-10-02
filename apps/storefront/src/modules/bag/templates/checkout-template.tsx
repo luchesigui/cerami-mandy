@@ -178,12 +178,45 @@ const CheckoutTemplate = () => {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [touched, setTouched] = useState<Partial<Record<keyof CustomerForm, boolean>>>({})
   const [attemptedSubmit, setAttemptedSubmit] = useState(false)
+  const [customerSession, setCustomerSession] = useState<{
+    authenticated: boolean
+    customer?: {
+      name?: string | null
+      email?: string
+      phone?: string | null
+      cpf?: string | null
+      address?: Partial<CustomerForm> | null
+    }
+  } | null>(null)
 
   useEffect(() => {
     if (!bag.hydrated) return
     const stored = readForm()
     setForm(stored.cep ? stored : { ...stored, cep: maskCep(bag.cep) })
     setFormReady(true)
+
+    // Check if customer is logged in to prefill profile & address
+    fetch("/api/auth/sessao")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.customer) {
+          setCustomerSession(data)
+          setForm((prev) => ({
+            name: data.customer.name || prev.name,
+            email: data.customer.email || prev.email,
+            phone: data.customer.phone ? maskPhone(data.customer.phone) : prev.phone,
+            cpf: data.customer.cpf ? maskCpf(data.customer.cpf) : prev.cpf,
+            cep: data.customer.address?.cep ? maskCep(data.customer.address.cep) : prev.cep,
+            street: data.customer.address?.street || prev.street,
+            number: data.customer.address?.number || prev.number,
+            complement: data.customer.address?.complement || prev.complement,
+            neighborhood: data.customer.address?.neighborhood || prev.neighborhood,
+            city: data.customer.address?.city || prev.city,
+            state: data.customer.address?.state || prev.state,
+          }))
+        }
+      })
+      .catch(() => undefined)
     // Run once, after the bag is read from storage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bag.hydrated])
@@ -366,6 +399,29 @@ const CheckoutTemplate = () => {
           <h1 className="mt-3 text-2xl font-bold uppercase tracking-wide">
             Finalizar compra
           </h1>
+          {customerSession?.authenticated ? (
+            <div className="mt-4 flex items-center justify-between rounded-2xl border border-emerald-300 bg-emerald-50/80 px-4 py-3 text-xs text-emerald-950">
+              <span>
+                Conectado como <strong>{customerSession.customer?.name || customerSession.customer?.email}</strong>
+              </span>
+              <LocalizedClientLink
+                href="/conta"
+                className="font-bold uppercase tracking-wide underline underline-offset-2"
+              >
+                Minha Conta
+              </LocalizedClientLink>
+            </div>
+          ) : (
+            <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-[#010204]/15 bg-[#FFF6E8] px-4 py-3 text-xs text-[#13110C] sm:flex-row sm:items-center sm:justify-between">
+              <span>Já tem uma conta na Cerami Mandy?</span>
+              <LocalizedClientLink
+                href="/entrar?redirect=/finalizar"
+                className="font-bold uppercase tracking-wider underline underline-offset-2 text-[#13110C] hover:text-[#FCAB42]"
+              >
+                Entrar com e-mail →
+              </LocalizedClientLink>
+            </div>
+          )}
         </div>
 
         <section className="space-y-4">

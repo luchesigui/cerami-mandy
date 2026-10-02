@@ -1,9 +1,10 @@
 import BagNavLink from "@modules/bag/components/bag-nav-link"
+import AccountNavLink from "@modules/layout/components/account-nav-link"
 import SideMenu from "@modules/layout/components/side-menu"
 
 export default function Nav() {
   const linkClassName =
-    "h-full flex items-center px-5 sm:px-6 text-sm uppercase text-white hover:text-[#FCAB42] transition-colors"
+    "h-full flex items-center px-3 sm:px-6 text-xs sm:text-sm uppercase text-white hover:text-[#FCAB42] transition-colors"
 
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
@@ -14,6 +15,7 @@ export default function Nav() {
           </div>
 
           <div className="flex items-stretch py-[5px]">
+            <AccountNavLink className={linkClassName} />
             <BagNavLink className={linkClassName} />
           </div>
         </nav>

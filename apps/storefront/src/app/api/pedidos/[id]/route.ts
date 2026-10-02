@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
+import { getSession } from "@lib/auth/session"
 import {
   confirmPayment,
   expireIfOverdue,
@@ -21,7 +22,15 @@ export async function GET(
   if (!UUID.test(id)) return notFound
 
   let order = await getOrder(`order.${id}`)
-  if (!order || !hasOrderAccess(order, search.get("t"))) return notFound
+  if (!order) return notFound
+
+  const session = await getSession()
+  const isOwner = !!(
+    session?.email &&
+    order.customer?.email &&
+    session.email.toLowerCase() === order.customer.email.toLowerCase()
+  )
+  if (!hasOrderAccess(order, search.get("t")) && !isOwner) return notFound
 
   // InfinitePay appends these to the redirect URL after a payment.
   const transactionNsu = search.get("transaction_nsu")
