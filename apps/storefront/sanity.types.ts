@@ -321,7 +321,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: AVAILABLE_PRODUCTS_QUERY
-// Query: *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0] | order(_createdAt desc) {    _id,    title,    "slug": slug.current,    price,    badges,    inventory,    "image": images[0]  }
+// Query: *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0] | order(_createdAt desc) {    _id,    title,    "slug": slug.current,    price,    badges,    inventory,    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),    "image": images[0]  }
 export type AVAILABLE_PRODUCTS_QUERY_RESULT = Array<{
   _id: string
   title: string | null
@@ -329,6 +329,7 @@ export type AVAILABLE_PRODUCTS_QUERY_RESULT = Array<{
   price: number | null
   badges: Array<string> | null
   inventory: number | null
+  reserved: boolean | false | null
   image: {
     asset?: SanityImageAssetReference
     media?: unknown
@@ -342,7 +343,7 @@ export type AVAILABLE_PRODUCTS_QUERY_RESULT = Array<{
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: SOLD_PRODUCTS_QUERY
-// Query: *[_type == "product" && status == "active" && defined(slug.current) && inventory == 0] | order(_updatedAt desc) [0...6] {    _id,    title,    "slug": slug.current,    price,    badges,    inventory,    "image": images[0]  }
+// Query: *[_type == "product" && status == "active" && defined(slug.current) && inventory == 0] | order(_updatedAt desc) [0...6] {    _id,    title,    "slug": slug.current,    price,    badges,    inventory,    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),    "image": images[0]  }
 export type SOLD_PRODUCTS_QUERY_RESULT = Array<{
   _id: string
   title: string | null
@@ -350,6 +351,7 @@ export type SOLD_PRODUCTS_QUERY_RESULT = Array<{
   price: number | null
   badges: Array<string> | null
   inventory: number | null
+  reserved: boolean | false | null
   image: {
     asset?: SanityImageAssetReference
     media?: unknown
@@ -413,7 +415,7 @@ export type PRODUCT_BY_SLUG_QUERY_RESULT = {
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: RELATED_PRODUCTS_QUERY
-// Query: *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {    _id,    title,    "slug": slug.current,    price,    badges,    inventory,    "image": images[0]  }
+// Query: *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {    _id,    title,    "slug": slug.current,    price,    badges,    inventory,    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),    "image": images[0]  }
 export type RELATED_PRODUCTS_QUERY_RESULT = Array<{
   _id: string
   title: string | null
@@ -421,6 +423,7 @@ export type RELATED_PRODUCTS_QUERY_RESULT = Array<{
   price: number | null
   badges: Array<string> | null
   inventory: number | null
+  reserved: boolean | false | null
   image: {
     asset?: SanityImageAssetReference
     media?: unknown
@@ -528,10 +531,10 @@ export type ORDER_BY_ID_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0] | order(_createdAt desc) {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': AVAILABLE_PRODUCTS_QUERY_RESULT
-    '\n  *[_type == "product" && status == "active" && defined(slug.current) && inventory == 0] | order(_updatedAt desc) [0...6] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': SOLD_PRODUCTS_QUERY_RESULT
+    '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0] | order(_createdAt desc) {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    "image": images[0]\n  }\n': AVAILABLE_PRODUCTS_QUERY_RESULT
+    '\n  *[_type == "product" && status == "active" && defined(slug.current) && inventory == 0] | order(_updatedAt desc) [0...6] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    "image": images[0]\n  }\n': SOLD_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "product" && status == "active" && slug.current == $slug][0] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    compareAtPrice,\n    badges,\n    images,\n    "categoryId": category._ref,\n    description,\n    "plainDescription": pt::text(description),\n    details,\n    inventory,\n    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())\n  }\n': PRODUCT_BY_SLUG_QUERY_RESULT
-    '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "image": images[0]\n  }\n': RELATED_PRODUCTS_QUERY_RESULT
+    '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    "image": images[0]\n  }\n': RELATED_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "product" && _id in $ids] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    "image": images[0],\n    "available": status == "active" && inventory > 0 && !(defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())),\n    "reserved": status == "active" && inventory > 0 && defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    shipping,\n    _rev\n  }\n': BAG_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "order" && _id == $id][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_ID_QUERY_RESULT
   }

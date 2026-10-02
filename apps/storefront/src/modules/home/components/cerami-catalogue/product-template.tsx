@@ -57,6 +57,7 @@ const fallbackRelated: RELATED_PRODUCTS_QUERY_RESULT = [
     price: 390,
     badges: ["destaque", "novidade"],
     inventory: 5,
+    reserved: false,
     image: null,
   },
   {
@@ -66,6 +67,7 @@ const fallbackRelated: RELATED_PRODUCTS_QUERY_RESULT = [
     price: 390,
     badges: ["novidade"],
     inventory: 5,
+    reserved: false,
     image: null,
   },
   {
@@ -75,6 +77,7 @@ const fallbackRelated: RELATED_PRODUCTS_QUERY_RESULT = [
     price: 390,
     badges: ["novidade"],
     inventory: 5,
+    reserved: false,
     image: null,
   },
 ]

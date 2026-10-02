@@ -15,6 +15,7 @@ export const AVAILABLE_PRODUCTS_QUERY = defineQuery(`
     price,
     badges,
     inventory,
+    "reserved": ${RESERVED},
     "image": images[0]
   }
 `)
@@ -27,6 +28,7 @@ export const SOLD_PRODUCTS_QUERY = defineQuery(`
     price,
     badges,
     inventory,
+    "reserved": ${RESERVED},
     "image": images[0]
   }
 `)
@@ -57,6 +59,7 @@ export const RELATED_PRODUCTS_QUERY = defineQuery(`
     price,
     badges,
     inventory,
+    "reserved": ${RESERVED},
     "image": images[0]
   }
 `)

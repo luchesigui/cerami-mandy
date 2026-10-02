@@ -8,12 +8,13 @@ import type { AVAILABLE_PRODUCTS_QUERY_RESULT } from "../../../../../sanity.type
 
 export type CardProduct = AVAILABLE_PRODUCTS_QUERY_RESULT[number]
 
-type Badge = "destaque" | "novidade" | "esgotada"
+type Badge = "destaque" | "novidade" | "esgotada" | "reservada"
 
 const badgeStyles: Record<Badge, { label: string; className: string }> = {
-  destaque: { label: "Destaque", className: "bg-[#1767BD]" },
-  novidade: { label: "Novidade", className: "bg-[#BD5717]" },
-  esgotada: { label: "Esgotada", className: "bg-[#BD172A]" },
+  destaque: { label: "Destaque", className: "bg-[#1767BD] text-white" },
+  novidade: { label: "Novidade", className: "bg-[#BD5717] text-white" },
+  esgotada: { label: "Esgotada", className: "bg-[#BD172A] text-white" },
+  reservada: { label: "Reservada", className: "bg-[#EAB308] text-[#13110C]" },
 }
 
 const isBadge = (value: string): value is Badge => value in badgeStyles
@@ -21,10 +22,17 @@ const isBadge = (value: string): value is Badge => value in badgeStyles
 export const getBadges = (product: {
   badges: string[] | null
   inventory: number | null
+  reserved?: boolean | null
 }): Badge[] => {
   const badges = (product.badges ?? []).filter(isBadge)
 
-  return product.inventory === 0 ? [...badges, "esgotada"] : badges
+  if (product.inventory === 0) {
+    return badges.includes("esgotada") ? badges : [...badges, "esgotada"]
+  }
+  if (product.reserved) {
+    return badges.includes("reservada") ? badges : [...badges, "reservada"]
+  }
+  return badges
 }
 
 type ProductCardProps = {
@@ -58,7 +66,7 @@ const ProductCard = ({
             {badges.map((badge) => (
               <span
                 key={badge}
-                className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white ${badgeStyles[badge].className}`}
+                className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide ${badgeStyles[badge].className}`}
               >
                 {badgeStyles[badge].label}
               </span>
