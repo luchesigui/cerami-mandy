@@ -30,7 +30,7 @@ Run `npm run typegen` in `studio-cerami-mandy`: it regenerates `schema.json` and
 
 ## Deploy
 
-Vercel project `cerami-mandy-storefront`. The branch `feat/sanity-catalogue-shipping` is its production branch, so every push there deploys to production. Environment variables are documented in `apps/storefront/.env.template`; manage them with `vercel env`.
+Vercel project `cerami-mandy-storefront`. The branch `main` is its production branch, so every push there deploys to production. Environment variables are documented in `apps/storefront/.env.template`; manage them with `vercel env`.
 
 ## Code style
 
