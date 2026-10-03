@@ -30,6 +30,7 @@ type CustomerData = {
     city?: string
     state?: string
   } | null
+  hasPassword?: boolean
   createdAt?: string | null
 }
 
@@ -64,12 +65,61 @@ const ORDER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   },
 }
 
+function EyeIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
+function EyeOffIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <line x1="2" x2="22" y1="2" y2="22" />
+    </svg>
+  )
+}
+
 export default function AccountPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [customer, setCustomer] = useState<CustomerData | null>(null)
   const [orders, setOrders] = useState<PublicOrder[]>([])
-  const [activeTab, setActiveTab] = useState<"pedidos" | "dados" | "endereco">("pedidos")
+  const [activeTab, setActiveTab] = useState<"pedidos" | "dados" | "endereco" | "senha">("pedidos")
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  })
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [showPasswordCurrent, setShowPasswordCurrent] = useState(false)
+  const [showPasswordNew, setShowPasswordNew] = useState(false)
 
   // Form states for profile & address
   const [profileForm, setProfileForm] = useState({
@@ -262,6 +312,53 @@ export default function AccountPage() {
     }
   }
 
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError(null)
+    setPasswordSuccess(null)
+
+    if (customer?.hasPassword && !passwordForm.currentPassword) {
+      setPasswordError("Informe a sua senha atual.")
+      return
+    }
+
+    if (!passwordForm.newPassword || passwordForm.newPassword.length < 6) {
+      setPasswordError("A nova senha deve ter no mínimo 6 caracteres.")
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError("As senhas não coincidem.")
+      return
+    }
+
+    setSavingPassword(true)
+    try {
+      const res = await fetch("/api/auth/senha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword || undefined,
+          newPassword: passwordForm.newPassword,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setPasswordError(data.error ?? "Erro ao salvar a senha.")
+      } else {
+        setPasswordSuccess(data.message ?? "Senha salva com sucesso!")
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
+        setCustomer((prev) => (prev ? { ...prev, hasPassword: true } : prev))
+        setTimeout(() => setPasswordSuccess(null), 4000)
+      }
+    } catch {
+      setPasswordError("Erro de conexão ao salvar a senha.")
+    } finally {
+      setSavingPassword(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="px-6 py-24 text-center text-sm text-[#13110C]/60">
@@ -329,6 +426,18 @@ export default function AccountPage() {
           }`}
         >
           Endereço de Entrega
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("senha")}
+          className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeTab === "senha"
+              ? "bg-[#13110C] text-white"
+              : "text-[#13110C]/70 hover:bg-[#FFCB98]/30"
+          }`}
+        >
+          Senha de Acesso
         </button>
       </div>
 
@@ -730,6 +839,144 @@ export default function AccountPage() {
               className="mt-4 rounded-full bg-[#FCAB42] px-8 py-3 text-xs font-bold uppercase tracking-wider text-[#13110C] hover:opacity-90 disabled:opacity-50"
             >
               {savingAddress ? "Salvando..." : "Salvar endereço"}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Conteúdo da aba Senha */}
+      {activeTab === "senha" && (
+        <div className="mt-8 max-w-xl rounded-3xl border border-[#010204] bg-[#FFFDF9] p-6 sm:p-8">
+          <h2 className="text-lg font-bold">
+            {customer?.hasPassword ? "Alterar senha de acesso" : "Definir senha de acesso"}
+          </h2>
+          <p className="mt-1 text-xs text-[#6b655b]">
+            {customer?.hasPassword
+              ? "Sua conta já possui uma senha. Você pode alterá-la quando desejar."
+              : "Defina uma senha para fazer login direto, sem precisar aguardar o código de verificação por e-mail."}
+          </p>
+
+          {passwordError && (
+            <div
+              role="alert"
+              className="mt-4 rounded-2xl border border-red-200 bg-red-50/70 p-3 text-xs font-semibold text-red-700"
+            >
+              {passwordError}
+            </div>
+          )}
+
+          {passwordSuccess && (
+            <div
+              role="status"
+              className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs font-semibold text-emerald-800"
+            >
+              {passwordSuccess}
+            </div>
+          )}
+
+          <form onSubmit={handleSavePassword} className="mt-6 space-y-4" noValidate>
+            {customer?.hasPassword && (
+              <div>
+                <label
+                  htmlFor="curr-pwd"
+                  className="block text-xs font-bold uppercase tracking-wide"
+                >
+                  Senha atual
+                </label>
+                <div className="relative mt-1.5">
+                  <input
+                    id="curr-pwd"
+                    type={showPasswordCurrent ? "text" : "password"}
+                    required
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => {
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        currentPassword: e.target.value,
+                      }))
+                      if (passwordError) setPasswordError(null)
+                    }}
+                    className="w-full rounded-full border border-[#13110C]/20 bg-white pl-5 pr-12 py-2.5 text-sm outline-none focus:border-[#13110C]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordCurrent((prev) => !prev)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6b655b] hover:text-[#13110C]"
+                    aria-label={showPasswordCurrent ? "Esconder senha" : "Ver senha"}
+                  >
+                    {showPasswordCurrent ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label
+                htmlFor="new-pwd"
+                className="block text-xs font-bold uppercase tracking-wide"
+              >
+                {customer?.hasPassword ? "Nova senha" : "Senha"}
+              </label>
+              <div className="relative mt-1.5">
+                <input
+                  id="new-pwd"
+                  type={showPasswordNew ? "text" : "password"}
+                  required
+                  placeholder="Mínimo de 6 caracteres"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => {
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      newPassword: e.target.value,
+                    }))
+                    if (passwordError) setPasswordError(null)
+                  }}
+                  className="w-full rounded-full border border-[#13110C]/20 bg-white pl-5 pr-12 py-2.5 text-sm outline-none focus:border-[#13110C]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordNew((prev) => !prev)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6b655b] hover:text-[#13110C]"
+                  aria-label={showPasswordNew ? "Esconder senha" : "Ver senha"}
+                >
+                  {showPasswordNew ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="confirm-pwd"
+                className="block text-xs font-bold uppercase tracking-wide"
+              >
+                Confirmar {customer?.hasPassword ? "nova senha" : "senha"}
+              </label>
+              <input
+                id="confirm-pwd"
+                type="password"
+                required
+                value={passwordForm.confirmPassword}
+                onChange={(e) => {
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    confirmPassword: e.target.value,
+                  }))
+                  if (passwordError) setPasswordError(null)
+                }}
+                className="mt-1.5 w-full rounded-full border border-[#13110C]/20 bg-white px-5 py-2.5 text-sm outline-none focus:border-[#13110C]"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={savingPassword}
+              className="mt-4 rounded-full bg-[#FCAB42] px-8 py-3 text-xs font-bold uppercase tracking-wider text-[#13110C] hover:opacity-90 disabled:opacity-50"
+            >
+              {savingPassword
+                ? "Salvando..."
+                : customer?.hasPassword
+                ? "Alterar senha"
+                : "Cadastrar senha"}
             </button>
           </form>
         </div>

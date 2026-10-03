@@ -205,6 +205,13 @@
           "type": "string"
         },
         "optional": true
+      },
+      "passwordHash": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "string"
+        },
+        "optional": true
       }
     }
   },

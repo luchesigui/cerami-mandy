@@ -116,6 +116,7 @@ export const CUSTOMER_BY_EMAIL_QUERY = defineQuery(`
     phone,
     cpf,
     address,
+    "hasPassword": defined(passwordHash),
     createdAt,
     updatedAt
   }
@@ -129,8 +130,18 @@ export const CUSTOMER_BY_ID_QUERY = defineQuery(`
     phone,
     cpf,
     address,
+    "hasPassword": defined(passwordHash),
     createdAt,
     updatedAt
+  }
+`)
+
+export const CUSTOMER_AUTH_BY_EMAIL_QUERY = defineQuery(`
+  *[_type == "customer" && lower(email) == lower($email)][0] {
+    _id,
+    name,
+    email,
+    passwordHash
   }
 `)
 

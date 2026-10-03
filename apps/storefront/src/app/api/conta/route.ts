@@ -32,6 +32,7 @@ export async function GET() {
       phone: customer.phone,
       cpf: customer.cpf,
       address: customer.address,
+      hasPassword: Boolean(customer.hasPassword),
       createdAt: customer.createdAt,
     },
     orders,

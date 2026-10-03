@@ -49,6 +49,7 @@ export type Customer = {
   }
   createdAt?: string
   updatedAt?: string
+  passwordHash?: string
 }
 
 export type ProductReference = {
@@ -633,7 +634,7 @@ export type ORDERS_BY_CUSTOMER_EMAIL_QUERY_RESULT = Array<{
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: CUSTOMER_BY_EMAIL_QUERY
-// Query: *[_type == "customer" && lower(email) == lower($email)][0] {    _id,    name,    email,    phone,    cpf,    address,    createdAt,    updatedAt  }
+// Query: *[_type == "customer" && lower(email) == lower($email)][0] {    _id,    name,    email,    phone,    cpf,    address,    "hasPassword": defined(passwordHash),    createdAt,    updatedAt  }
 export type CUSTOMER_BY_EMAIL_QUERY_RESULT = {
   _id: string
   name: string | null
@@ -649,13 +650,14 @@ export type CUSTOMER_BY_EMAIL_QUERY_RESULT = {
     city?: string
     state?: string
   } | null
+  hasPassword: false | true
   createdAt: string | null
   updatedAt: string | null
 } | null
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: CUSTOMER_BY_ID_QUERY
-// Query: *[_type == "customer" && _id == $id][0] {    _id,    name,    email,    phone,    cpf,    address,    createdAt,    updatedAt  }
+// Query: *[_type == "customer" && _id == $id][0] {    _id,    name,    email,    phone,    cpf,    address,    "hasPassword": defined(passwordHash),    createdAt,    updatedAt  }
 export type CUSTOMER_BY_ID_QUERY_RESULT = {
   _id: string
   name: string | null
@@ -671,8 +673,19 @@ export type CUSTOMER_BY_ID_QUERY_RESULT = {
     city?: string
     state?: string
   } | null
+  hasPassword: false | true
   createdAt: string | null
   updatedAt: string | null
+} | null
+
+// Source: ../apps/storefront/src/sanity/queries.ts
+// Variable: CUSTOMER_AUTH_BY_EMAIL_QUERY
+// Query: *[_type == "customer" && lower(email) == lower($email)][0] {    _id,    name,    email,    passwordHash  }
+export type CUSTOMER_AUTH_BY_EMAIL_QUERY_RESULT = {
+  _id: string
+  name: string | null
+  email: string | null
+  passwordHash: string | null
 } | null
 
 // Source: ../apps/storefront/src/sanity/queries.ts
@@ -696,8 +709,9 @@ declare global {
     '\n  *[_type == "product" && _id in $ids] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    "image": images[0],\n    "available": status == "active" && inventory > 0 && !(defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())),\n    "reserved": status == "active" && inventory > 0 && defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    shipping,\n    _rev\n  }\n': BAG_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "order" && _id == $id][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_ID_QUERY_RESULT
     '\n  *[_type == "order" && lower(customer.email) == lower($email)] | order(createdAt desc) {\n    \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n\n  }\n': ORDERS_BY_CUSTOMER_EMAIL_QUERY_RESULT
-    '\n  *[_type == "customer" && lower(email) == lower($email)][0] {\n    _id,\n    name,\n    email,\n    phone,\n    cpf,\n    address,\n    createdAt,\n    updatedAt\n  }\n': CUSTOMER_BY_EMAIL_QUERY_RESULT
-    '\n  *[_type == "customer" && _id == $id][0] {\n    _id,\n    name,\n    email,\n    phone,\n    cpf,\n    address,\n    createdAt,\n    updatedAt\n  }\n': CUSTOMER_BY_ID_QUERY_RESULT
+    '\n  *[_type == "customer" && lower(email) == lower($email)][0] {\n    _id,\n    name,\n    email,\n    phone,\n    cpf,\n    address,\n    "hasPassword": defined(passwordHash),\n    createdAt,\n    updatedAt\n  }\n': CUSTOMER_BY_EMAIL_QUERY_RESULT
+    '\n  *[_type == "customer" && _id == $id][0] {\n    _id,\n    name,\n    email,\n    phone,\n    cpf,\n    address,\n    "hasPassword": defined(passwordHash),\n    createdAt,\n    updatedAt\n  }\n': CUSTOMER_BY_ID_QUERY_RESULT
+    '\n  *[_type == "customer" && lower(email) == lower($email)][0] {\n    _id,\n    name,\n    email,\n    passwordHash\n  }\n': CUSTOMER_AUTH_BY_EMAIL_QUERY_RESULT
     '\n  *[_type == "authOtp" && _id == $id][0] {\n    _id,\n    email,\n    codeHash,\n    expiresAt,\n    attempts\n  }\n': AUTH_OTP_BY_ID_QUERY_RESULT
   }
 }

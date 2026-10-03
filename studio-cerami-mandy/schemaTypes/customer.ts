@@ -57,6 +57,13 @@ export const customer = defineType({
       type: 'datetime',
       readOnly: true,
     }),
+    defineField({
+      name: 'passwordHash',
+      title: 'Hash da Senha',
+      type: 'string',
+      hidden: true,
+      readOnly: true,
+    }),
   ],
   orderings: [
     {
