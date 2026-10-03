@@ -105,6 +105,8 @@ export const order = defineType({
         defineField({ name: 'name', title: 'Serviço', type: 'string' }),
         defineField({ name: 'price', title: 'Valor (R$)', type: 'number' }),
         defineField({ name: 'deliveryDays', title: 'Prazo (dias úteis)', type: 'number' }),
+        defineField({ name: 'melhorEnvioOrderId', title: 'ID no Melhor Envio', type: 'string' }),
+        defineField({ name: 'labelUrl', title: 'Link da Etiqueta (PDF)', type: 'url' }),
       ],
     }),
     defineField({ name: 'subtotal', title: 'Subtotal (R$)', type: 'number', readOnly: true }),

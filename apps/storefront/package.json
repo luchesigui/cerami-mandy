@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start -p 8000",
     "lint": "next lint",
+    "shipment": "tsx scripts/generate-order-shipment.ts",
     "analyze": "ANALYZE=true next build"
   },
   "dependencies": {

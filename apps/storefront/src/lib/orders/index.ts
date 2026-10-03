@@ -25,6 +25,8 @@ import {
 import { isValidCep, normalizeCep } from "@lib/shipping/cep"
 import { getSiteUrl } from "@lib/util/deploy-env"
 import {
+  checkoutAndGenerateShipment,
+  createShipmentCart,
   quoteShipping,
   ShippingQuoteError,
   type ShippingPackage,
@@ -470,10 +472,115 @@ async function markOrderPaid(orderId: string, details: PaymentDetails) {
       sendStoreSaleNotificationEmail(updatedOrder).catch((err) =>
         console.error("[orders] store sale notification email failed:", err)
       )
+      if (updatedOrder.shipping?.serviceId && updatedOrder.shipping.serviceId > 0) {
+        generateShipmentForOrder(updatedOrder).catch((err) =>
+          console.error("[orders] automatic shipment generation failed:", err)
+        )
+      }
     }
   }
 
   return updatedOrder
+}
+
+export async function generateShipmentForOrder(order: Order) {
+  const serviceId = order.shipping?.serviceId
+  if (!serviceId || serviceId <= 0) {
+    console.info(
+      `[orders] skipping shipment generation for order ${order.number} (pickup or no service)`
+    )
+    return null
+  }
+
+  if (!order.customer || !order.address) {
+    console.warn(
+      `[orders] cannot generate shipment for ${order.number}: missing customer or address`
+    )
+    return null
+  }
+
+  const productIds = (order.items ?? []).flatMap((i) =>
+    i.productId ? [i.productId] : []
+  )
+  const products = await writeClient.fetch<
+    Array<{
+      _id: string
+      title?: string
+      shipping?: {
+        weightGrams?: number
+        heightCm?: number
+        widthCm?: number
+        lengthCm?: number
+      }
+    }>
+  >(`*[_id in $ids]{ _id, title, shipping }`, { ids: productIds })
+
+  const packages: ShippingPackage[] = []
+  for (const item of order.items ?? []) {
+    const p = products.find((prod) => prod._id === item.productId)
+    const s = p?.shipping
+    packages.push({
+      id: item.productId || order._id,
+      price: item.price ?? 0,
+      weightGrams: s?.weightGrams || 600,
+      heightCm: s?.heightCm || 12,
+      widthCm: s?.widthCm || 12,
+      lengthCm: s?.lengthCm || 19,
+    })
+  }
+
+  try {
+    const cart = await createShipmentCart({
+      serviceId,
+      recipient: {
+        name: order.customer.name || "",
+        phone: order.customer.phone || "",
+        email: order.customer.email || "",
+        document: order.customer.cpf || "",
+        address: order.address.street || "",
+        number: order.address.number || "",
+        complement: order.address.complement || "",
+        district: order.address.neighborhood || "",
+        city: order.address.city || "",
+        state: order.address.state || "",
+        postalCode: order.address.cep || "",
+      },
+      packages,
+      items: (order.items ?? []).map((i) => ({
+        title: i.title || "Peça de cerâmica",
+        price: i.price ?? 0,
+      })),
+      insuranceValue: order.subtotal ?? undefined,
+    })
+
+    console.info(
+      `[orders] order ${order.number} added to Melhor Envio cart: ${cart.id}`
+    )
+
+    const shipment = await checkoutAndGenerateShipment(cart.id)
+
+    const patchData: Record<string, unknown> = {
+      "shipping.melhorEnvioOrderId": cart.id,
+    }
+    if (shipment.labelUrl) {
+      patchData["shipping.labelUrl"] = shipment.labelUrl
+    }
+    if (shipment.trackingCode) {
+      patchData.trackingCode = shipment.trackingCode
+    }
+
+    await writeClient.patch(order._id).set(patchData).commit()
+    console.info(
+      `[orders] shipment saved to order ${order.number}: status=${shipment.status}`
+    )
+    return shipment
+  } catch (err) {
+    console.error(
+      `[orders] failed to generate shipment for order ${order.number}:`,
+      err
+    )
+    return null
+  }
 }
 
 // Confirms a payment reported by the webhook or the redirect. Their data is only a

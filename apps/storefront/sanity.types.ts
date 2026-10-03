@@ -103,6 +103,8 @@ export type Order = {
     name?: string
     price?: number
     deliveryDays?: number
+    melhorEnvioOrderId?: string
+    labelUrl?: string
   }
   subtotal?: number
   shippingTotal?: number
@@ -547,6 +549,8 @@ export type ORDER_BY_ID_QUERY_RESULT = {
     name?: string
     price?: number
     deliveryDays?: number
+    melhorEnvioOrderId?: string
+    labelUrl?: string
   } | null
   subtotal: number | null
   shippingTotal: number | null
@@ -612,6 +616,8 @@ export type ORDERS_BY_CUSTOMER_EMAIL_QUERY_RESULT = Array<{
     name?: string
     price?: number
     deliveryDays?: number
+    melhorEnvioOrderId?: string
+    labelUrl?: string
   } | null
   subtotal: number | null
   shippingTotal: number | null
