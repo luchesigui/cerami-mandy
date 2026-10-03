@@ -13,9 +13,9 @@ const Hero = () => {
         className="mx-auto h-auto w-[180px] sm:w-[210px]"
       />
       <p className="mx-auto mt-9 max-w-[650px] text-sm leading-relaxed sm:text-base">
-        Peças de cerâmica autênticas, criativas e únicas, moldadas e pintadas à
-        mão por Amanda Yoshiizumi. Cada caneca e vasilha sai do ateliê com
-        personalidade própria para quem cansou de louça sem graça.
+        Canecas únicas, cheias de personalidade e feitas 100% à mão por Amanda
+        Yoshiizumi. Arte em cerâmica para quem quer transformar a hora do café
+        e já não tem paciência para louça básica e sem graça.
       </p>
     </section>
   )
