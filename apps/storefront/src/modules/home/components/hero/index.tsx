@@ -14,7 +14,7 @@ const Hero = () => {
       />
       <p className="mx-auto mt-9 max-w-[650px] text-sm leading-relaxed sm:text-base">
         Peças de cerâmica autênticas, criativas e únicas, moldadas e pintadas à
-        mão por @mandyellow.jpg. Cada caneca e vasilha sai do ateliê com
+        mão por Amanda Yoshiizumi. Cada caneca e vasilha sai do ateliê com
         personalidade própria para quem cansou de louça sem graça.
       </p>
     </section>

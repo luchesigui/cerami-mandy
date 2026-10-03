@@ -6,6 +6,8 @@ import "styles/globals.css"
 
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseURL()),
+  description:
+    "Canecas únicas, cheias de personalidade e feitas 100% à mão por Amanda Yoshiizumi. Arte em cerâmica para quem quer transformar a hora do café e já não tem paciência para louça básica e sem graça.",
 }
 
 export default function RootLayout(props: { children: React.ReactNode }) {
