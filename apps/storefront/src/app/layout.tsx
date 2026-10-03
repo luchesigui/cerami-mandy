@@ -16,9 +16,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
     <html lang="pt-BR" data-mode="light">
       <body className="bg-[#FFFDF9] text-[#010204] min-h-screen antialiased selection:bg-[#FFAD40] selection:text-[#010204]">
         <BagProvider>
-          <AuthProvider>
-            <main className="relative">{props.children}</main>
-          </AuthProvider>
+          <AuthProvider>{props.children}</AuthProvider>
         </BagProvider>
         <SanityLive />
       </body>

@@ -59,9 +59,11 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
 
   // Sign up fields
+  const [signupStep, setSignupStep] = useState<"form" | "verify">("form")
   const [signupName, setSignupName] = useState("")
   const [signupEmail, setSignupEmail] = useState("")
   const [signupPassword, setSignupPassword] = useState("")
+  const [signupCode, setSignupCode] = useState("")
   const [showSignupPassword, setShowSignupPassword] = useState(false)
 
   const [loading, setLoading] = useState(false)
@@ -247,11 +249,78 @@ function LoginForm() {
         return
       }
 
+      setSignupStep("verify")
+      setResendCooldown(60)
+    } catch {
+      setError("Erro de conexão ao criar sua conta.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerifySignupCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const cleanCode = signupCode.replace(/\D/g, "")
+    if (cleanCode.length !== 6) {
+      setError("Informe o código de 6 dígitos.")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch("/api/auth/cadastrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: signupName.trim(),
+          email: signupEmail.toLowerCase().trim(),
+          password: signupPassword,
+          code: cleanCode,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? "Código inválido.")
+        setLoading(false)
+        return
+      }
+
       notifyAuthChange()
       router.push(redirect)
       router.refresh()
     } catch {
-      setError("Erro de conexão ao criar sua conta.")
+      setError("Erro de conexão ao validar o código.")
+      setLoading(false)
+    }
+  }
+
+  const handleResendSignupCode = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch("/api/auth/cadastrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: signupName.trim(),
+          email: signupEmail.toLowerCase().trim(),
+          password: signupPassword,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? "Não foi possível reenviar o código.")
+      } else {
+        setResendCooldown(60)
+      }
+    } catch {
+      setError("Erro ao reenviar o código.")
+    } finally {
       setLoading(false)
     }
   }
@@ -284,6 +353,8 @@ function LoginForm() {
               type="button"
               onClick={() => {
                 setMode("cadastrar")
+                setSignupStep("form")
+                setSignupCode("")
                 setError(null)
               }}
               className={`flex-1 rounded-full py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
@@ -298,7 +369,9 @@ function LoginForm() {
 
           <h1 className="mt-6 text-2xl font-bold tracking-tight">
             {mode === "cadastrar"
-              ? "Criar minha conta"
+              ? signupStep === "verify"
+                ? "Confirme seu e-mail"
+                : "Criar minha conta"
               : step === "code"
               ? "Código de verificação"
               : step === "password"
@@ -308,7 +381,9 @@ function LoginForm() {
 
           <p className="mt-2 text-xs leading-relaxed text-[#13110C]/70">
             {mode === "cadastrar"
-              ? "Cadastre-se para acompanhar seus pedidos e compras exclusivas."
+              ? signupStep === "verify"
+                ? `Enviamos um código de 6 dígitos para ${signupEmail}. Digite-o para ativar sua conta.`
+                : "Cadastre-se para acompanhar seus pedidos e compras exclusivas."
               : step === "code"
               ? `Enviamos um código de acesso de 6 dígitos para ${email}.`
               : step === "password"
@@ -339,95 +414,158 @@ function LoginForm() {
         )}
 
         {mode === "cadastrar" ? (
-          /* Sign Up Form */
-          <form onSubmit={handleSignup} className="mt-6 space-y-4" noValidate>
-            <div>
-              <label
-                htmlFor="signup-name"
-                className="block text-xs font-bold uppercase tracking-wide text-[#13110C]"
-              >
-                Nome completo
-              </label>
-              <input
-                id="signup-name"
-                type="text"
-                required
-                autoComplete="name"
-                placeholder="Seu Nome"
-                value={signupName}
-                onChange={(e) => {
-                  setSignupName(e.target.value)
-                  if (error) setError(null)
-                }}
-                className="mt-1.5 w-full rounded-full border border-[#13110C]/20 bg-white px-5 py-3 text-sm outline-none transition-colors focus:border-[#13110C]"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="signup-email"
-                className="block text-xs font-bold uppercase tracking-wide text-[#13110C]"
-              >
-                E-mail
-              </label>
-              <input
-                id="signup-email"
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="seu@email.com"
-                value={signupEmail}
-                onChange={(e) => {
-                  setSignupEmail(e.target.value)
-                  if (error) setError(null)
-                }}
-                className="mt-1.5 w-full rounded-full border border-[#13110C]/20 bg-white px-5 py-3 text-sm outline-none transition-colors focus:border-[#13110C]"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="signup-password"
-                className="block text-xs font-bold uppercase tracking-wide text-[#13110C]"
-              >
-                Senha
-              </label>
-              <div className="relative mt-1.5">
+          signupStep === "form" ? (
+            /* Sign Up Form */
+            <form onSubmit={handleSignup} className="mt-6 space-y-4" noValidate>
+              <div>
+                <label
+                  htmlFor="signup-name"
+                  className="block text-xs font-bold uppercase tracking-wide text-[#13110C]"
+                >
+                  Nome completo
+                </label>
                 <input
-                  id="signup-password"
-                  type={showSignupPassword ? "text" : "password"}
+                  id="signup-name"
+                  type="text"
                   required
-                  placeholder="Mínimo de 6 caracteres"
-                  value={signupPassword}
+                  autoComplete="name"
+                  placeholder="Seu Nome"
+                  value={signupName}
                   onChange={(e) => {
-                    setSignupPassword(e.target.value)
+                    setSignupName(e.target.value)
                     if (error) setError(null)
                   }}
-                  className="w-full rounded-full border border-[#13110C]/20 bg-white pl-5 pr-12 py-3 text-sm outline-none transition-colors focus:border-[#13110C]"
+                  className="mt-1.5 w-full rounded-full border border-[#13110C]/20 bg-white px-5 py-3 text-sm outline-none transition-colors focus:border-[#13110C]"
                 />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="signup-email"
+                  className="block text-xs font-bold uppercase tracking-wide text-[#13110C]"
+                >
+                  E-mail
+                </label>
+                <input
+                  id="signup-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="seu@email.com"
+                  value={signupEmail}
+                  onChange={(e) => {
+                    setSignupEmail(e.target.value)
+                    if (error) setError(null)
+                  }}
+                  className="mt-1.5 w-full rounded-full border border-[#13110C]/20 bg-white px-5 py-3 text-sm outline-none transition-colors focus:border-[#13110C]"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="signup-password"
+                  className="block text-xs font-bold uppercase tracking-wide text-[#13110C]"
+                >
+                  Senha
+                </label>
+                <div className="relative mt-1.5">
+                  <input
+                    id="signup-password"
+                    type={showSignupPassword ? "text" : "password"}
+                    required
+                    placeholder="Mínimo de 6 caracteres"
+                    value={signupPassword}
+                    onChange={(e) => {
+                      setSignupPassword(e.target.value)
+                      if (error) setError(null)
+                    }}
+                    className="w-full rounded-full border border-[#13110C]/20 bg-white pl-5 pr-12 py-3 text-sm outline-none transition-colors focus:border-[#13110C]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSignupPassword((prev) => !prev)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6b655b] hover:text-[#13110C]"
+                    aria-label={showSignupPassword ? "Esconder senha" : "Ver senha"}
+                  >
+                    {showSignupPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full rounded-full bg-[#FCAB42] py-3.5 text-sm font-bold uppercase tracking-wide text-[#13110C] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? "Enviando código..." : "Continuar e validar e-mail"}
+              </button>
+
+              <p className="text-center text-[11px] leading-relaxed text-[#6b655b]">
+                Você receberá um código de ativação de 6 dígitos no seu e-mail para validar a conta.
+              </p>
+            </form>
+          ) : (
+            /* Sign Up OTP Verification */
+            <form onSubmit={handleVerifySignupCode} className="mt-6 space-y-4" noValidate>
+              <div>
+                <label
+                  htmlFor="signup-code"
+                  className="block text-center text-xs font-bold uppercase tracking-wide text-[#13110C]"
+                >
+                  Código de ativação (6 dígitos)
+                </label>
+                <input
+                  id="signup-code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  required
+                  autoFocus
+                  placeholder="000000"
+                  value={signupCode}
+                  onChange={(e) => {
+                    setSignupCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    if (error) setError(null)
+                  }}
+                  className="mt-2 w-full rounded-2xl border border-[#13110C]/30 bg-white py-3.5 text-center font-mono text-2xl font-bold tracking-[0.4em] outline-none transition-colors focus:border-[#13110C]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || signupCode.replace(/\D/g, "").length !== 6}
+                className="w-full rounded-full bg-[#FCAB42] py-3.5 text-sm font-bold uppercase tracking-wide text-[#13110C] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? "Ativando..." : "Validar e concluir cadastro"}
+              </button>
+
+              <div className="flex flex-col items-center gap-2 pt-1 text-xs">
                 <button
                   type="button"
-                  onClick={() => setShowSignupPassword((prev) => !prev)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6b655b] hover:text-[#13110C]"
-                  aria-label={showSignupPassword ? "Esconder senha" : "Ver senha"}
+                  disabled={resendCooldown > 0 || loading}
+                  onClick={handleResendSignupCode}
+                  className="font-medium text-[#13110C]/70 underline underline-offset-2 hover:text-[#13110C] disabled:opacity-50"
                 >
-                  {showSignupPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  {resendCooldown > 0
+                    ? `Reenviar código em ${resendCooldown}s`
+                    : "Reenviar código de ativação"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSignupStep("form")
+                    setSignupCode("")
+                    setError(null)
+                  }}
+                  className="text-[#6b655b] hover:underline"
+                >
+                  Voltar e editar dados
                 </button>
               </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-2 w-full rounded-full bg-[#FCAB42] py-3.5 text-sm font-bold uppercase tracking-wide text-[#13110C] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? "Criando conta..." : "Criar conta e entrar"}
-            </button>
-
-            <p className="text-center text-[11px] leading-relaxed text-[#6b655b]">
-              Se você já comprou conosco usando este e-mail, seus pedidos anteriores aparecerão automaticamente.
-            </p>
-          </form>
+            </form>
+          )
         ) : step === "email" ? (
           /* Step 1: Input Email to receive code OR jump to password */
           <form

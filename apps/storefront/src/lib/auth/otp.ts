@@ -3,7 +3,7 @@ import "server-only"
 import crypto from "node:crypto"
 
 import { isValidEmail } from "@lib/br-documents"
-import { sendAuthCodeEmail } from "@lib/email"
+import { sendAuthCodeEmail, sendSignupVerificationEmail } from "@lib/email"
 import { safeEqual } from "@lib/safe-equal"
 import { AUTH_OTP_BY_ID_QUERY } from "@/sanity/queries"
 import { writeClient } from "@/sanity/write-client"
@@ -23,7 +23,15 @@ function hashCode(email: string, code: string): string {
     .digest("hex")
 }
 
-export async function requestOtp(email: string): Promise<{ success: boolean; error?: string }> {
+export type RequestOtpOptions = {
+  type?: "login" | "signup"
+  name?: string
+}
+
+export async function requestOtp(
+  email: string,
+  options?: RequestOtpOptions
+): Promise<{ success: boolean; error?: string }> {
   const cleanEmail = email.toLowerCase().trim()
   if (!isValidEmail(cleanEmail)) {
     return { success: false, error: "Informe um e-mail válido." }
@@ -46,7 +54,11 @@ export async function requestOtp(email: string): Promise<{ success: boolean; err
       createdAt: now.toISOString(),
     })
 
-    const sent = await sendAuthCodeEmail(cleanEmail, code)
+    const sent =
+      options?.type === "signup"
+        ? await sendSignupVerificationEmail(cleanEmail, code, options.name)
+        : await sendAuthCodeEmail(cleanEmail, code)
+
     if (!sent) {
       console.warn(`[auth] Resend was not configured or failed to send to ${cleanEmail}. Dev code: ${code}`)
     }

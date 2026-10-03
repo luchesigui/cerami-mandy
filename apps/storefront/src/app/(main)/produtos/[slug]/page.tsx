@@ -10,7 +10,6 @@ import {
 import ProductTemplate from "@modules/home/components/cerami-catalogue/product-template"
 
 export const dynamic = "force-dynamic"
-export const revalidate = 0
 
 type Props = {
   params: Promise<{ slug: string }>

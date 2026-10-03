@@ -15,7 +15,7 @@ export default function AccountNavLink({ className }: { className?: string }) {
           data-testid="nav-account-link"
           title="Minha Conta"
         >
-          <span className="hidden sm:inline">Minha </span>Conta
+          Minha Conta
         </LocalizedClientLink>
         <button
           type="button"

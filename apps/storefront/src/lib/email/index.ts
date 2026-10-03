@@ -104,6 +104,63 @@ export async function sendAuthCodeEmail(to: string, code: string) {
   })
 }
 
+export async function sendSignupVerificationEmail(to: string, code: string, name?: string) {
+  const formattedCode = `${code.slice(0, 3)} ${code.slice(3)}`
+  const firstName = name?.trim().split(/\s+/)[0] || "Olá"
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="margin: 0; padding: 30px 15px; background-color: #F8F5EE; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #FFFDF9; border-radius: 24px; border: 1px solid #010204; overflow: hidden;">
+        <tr>
+          <td style="background-color: #13110C; padding: 24px 32px; text-align: center;">
+            <span style="color: #FCAB42; font-size: 20px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase;">CERAMI MANDY</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px; text-align: center;">
+            <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #6b655b;">
+              Validação de Cadastro
+            </p>
+            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: bold; color: #13110C;">
+              Confirme seu e-mail
+            </h1>
+            <p style="margin: 0 0 28px 0; font-size: 15px; line-height: 1.6; color: #13110C;">
+              ${firstName ? `Olá, <strong>${firstName}</strong>! ` : ""}Use o código abaixo para confirmar seu e-mail e ativar sua conta na Cerami Mandy.
+            </p>
+
+            <div style="background-color: #FFF6E8; border: 1px solid #010204; border-radius: 16px; padding: 20px; margin-bottom: 24px; display: inline-block; min-width: 220px;">
+              <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #13110C; font-family: monospace;">
+                ${formattedCode}
+              </span>
+            </div>
+
+            <p style="margin: 0 0 24px 0; font-size: 13px; color: #6b655b; line-height: 1.5;">
+              Este código é válido por <strong>15 minutos</strong>.<br>
+              Se você não solicitou a criação desta conta, ignore esta mensagem com segurança.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #ede8df; margin: 24px 0;">
+
+            <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #8a8275;">
+              Cada peça é única, moldada e esmaltada à mão.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  return sendEmail({
+    to,
+    subject: `Seu código de ativação: ${code} · Cerami Mandy`,
+    html,
+  })
+}
+
 export async function sendOrderConfirmationEmail(order: Order, baseUrl: string) {
   const email = order.customer?.email
   if (!email) return
