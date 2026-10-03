@@ -1,5 +1,6 @@
 import { SanityLive } from "@/sanity/live"
 import { getBaseURL } from "@lib/util/env"
+import { AuthProvider } from "@modules/auth/auth-context"
 import { BagProvider } from "@modules/bag/bag-context"
 import { Metadata } from "next"
 import "styles/globals.css"
@@ -15,7 +16,9 @@ export default function RootLayout(props: { children: React.ReactNode }) {
     <html lang="pt-BR" data-mode="light">
       <body className="bg-[#FFFDF9] text-[#010204] min-h-screen antialiased selection:bg-[#FFAD40] selection:text-[#010204]">
         <BagProvider>
-          <main className="relative">{props.children}</main>
+          <AuthProvider>
+            <main className="relative">{props.children}</main>
+          </AuthProvider>
         </BagProvider>
         <SanityLive />
       </body>

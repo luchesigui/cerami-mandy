@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { isValidEmail } from "@lib/br-documents"
+import { notifyAuthChange } from "@modules/auth/auth-context"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 function EyeIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -147,6 +148,7 @@ function LoginForm() {
         return
       }
 
+      notifyAuthChange()
       router.push(redirect)
       router.refresh()
     } catch {
@@ -189,6 +191,7 @@ function LoginForm() {
         return
       }
 
+      notifyAuthChange()
       router.push(redirect)
       router.refresh()
     } catch {
@@ -244,6 +247,7 @@ function LoginForm() {
         return
       }
 
+      notifyAuthChange()
       router.push(redirect)
       router.refresh()
     } catch {

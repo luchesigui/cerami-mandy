@@ -12,6 +12,7 @@ import {
 } from "@lib/br-documents"
 import type { PublicOrder } from "@lib/orders"
 import { isValidCep, maskCep, normalizeCep } from "@lib/shipping/cep"
+import { useAuth } from "@modules/auth/auth-context"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { formatShippingPrice } from "@/sanity/format"
 
@@ -105,6 +106,7 @@ function EyeOffIcon({ className = "h-4 w-4" }: { className?: string }) {
 
 export default function AccountPage() {
   const router = useRouter()
+  const { logout } = useAuth()
   const [loading, setLoading] = useState(true)
   const [customer, setCustomer] = useState<CustomerData | null>(null)
   const [orders, setOrders] = useState<PublicOrder[]>([])
@@ -203,9 +205,7 @@ export default function AccountPage() {
   }, [addressForm.cep])
 
   const handleLogout = async () => {
-    await fetch("/api/auth/sair", { method: "POST" })
-    router.push("/")
-    router.refresh()
+    await logout()
   }
 
   const handleSaveProfile = async (e: React.FormEvent) => {

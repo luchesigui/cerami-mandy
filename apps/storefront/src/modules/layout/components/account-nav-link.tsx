@@ -1,43 +1,38 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import { useAuth } from "@modules/auth/auth-context"
 
 export default function AccountNavLink({ className }: { className?: string }) {
-  const [auth, setAuth] = useState<{
-    loaded: boolean
-    authenticated: boolean
-    name?: string
-  }>({
-    loaded: false,
-    authenticated: false,
-  })
+  const { authenticated, logout } = useAuth()
 
-  useEffect(() => {
-    fetch("/api/auth/sessao")
-      .then((res) => res.json())
-      .then((data) => {
-        setAuth({
-          loaded: true,
-          authenticated: !!data.authenticated,
-          name: data.customer?.name?.split(" ")[0] || undefined,
-        })
-      })
-      .catch(() => {
-        setAuth({ loaded: true, authenticated: false })
-      })
-  }, [])
-
-  const href = auth.authenticated ? "/conta" : "/entrar"
-  const label = auth.authenticated
-    ? auth.name
-      ? `Olá, ${auth.name}`
-      : "Minha Conta"
-    : "Entrar"
+  if (authenticated) {
+    return (
+      <>
+        <LocalizedClientLink
+          href="/conta"
+          className={className}
+          data-testid="nav-account-link"
+          title="Minha Conta"
+        >
+          <span className="hidden sm:inline">Minha </span>Conta
+        </LocalizedClientLink>
+        <button
+          type="button"
+          onClick={logout}
+          className={className}
+          data-testid="nav-logout-button"
+          title="Sair da conta"
+        >
+          Sair
+        </button>
+      </>
+    )
+  }
 
   return (
-    <LocalizedClientLink href={href} className={className} data-testid="nav-account-link">
-      {label}
+    <LocalizedClientLink href="/entrar" className={className} data-testid="nav-account-link">
+      Entrar
     </LocalizedClientLink>
   )
 }

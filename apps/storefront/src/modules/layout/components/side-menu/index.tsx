@@ -2,7 +2,8 @@
 
 import { Popover, PopoverPanel, Transition } from "@headlessui/react"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import { Fragment, useEffect, useState } from "react"
+import { Fragment } from "react"
+import { useAuth } from "@modules/auth/auth-context"
 
 const BASE_MENU_ITEMS = [
   { name: "Início", href: "/" },
@@ -17,19 +18,7 @@ const CloseIcon = () => (
 )
 
 const SideMenu = () => {
-  const [session, setSession] = useState<{ authenticated: boolean; name?: string } | null>(null)
-
-  useEffect(() => {
-    fetch("/api/auth/sessao")
-      .then((res) => res.json())
-      .then((data) => {
-        setSession({
-          authenticated: !!data.authenticated,
-          name: data.customer?.name?.split(" ")[0] || undefined,
-        })
-      })
-      .catch(() => setSession({ authenticated: false }))
-  }, [])
+  const { authenticated, logout } = useAuth()
 
   return (
     <div className="h-full">
@@ -82,26 +71,57 @@ const SideMenu = () => {
 
                       {/* Lista de links com divisores wireframe */}
                       <ul className="flex flex-col divide-y divide-[#010204] border-b border-[#010204]">
-                        {[
-                          ...BASE_MENU_ITEMS,
-                          {
-                            name: session?.authenticated ? "Minha Conta" : "Entrar",
-                            href: session?.authenticated ? "/conta" : "/entrar",
-                          },
-                        ].map(({ name, href }) => {
-                          return (
-                            <li key={name}>
+                        {BASE_MENU_ITEMS.map(({ name, href }) => (
+                          <li key={name}>
+                            <LocalizedClientLink
+                              href={href}
+                              className="block px-6 py-4 text-lg font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors"
+                              onClick={close}
+                              data-testid={`${name.toLowerCase()}-link`}
+                            >
+                              {name}
+                            </LocalizedClientLink>
+                          </li>
+                        ))}
+
+                        {authenticated ? (
+                          <>
+                            <li>
                               <LocalizedClientLink
-                                href={href}
+                                href="/conta"
                                 className="block px-6 py-4 text-lg font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors"
                                 onClick={close}
-                                data-testid={`${name.toLowerCase()}-link`}
+                                data-testid="conta-link"
                               >
-                                {name}
+                                Minha Conta
                               </LocalizedClientLink>
                             </li>
-                          )
-                        })}
+                            <li>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  close()
+                                  await logout()
+                                }}
+                                className="w-full text-left block px-6 py-4 text-lg font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors"
+                                data-testid="sair-link"
+                              >
+                                Sair
+                              </button>
+                            </li>
+                          </>
+                        ) : (
+                          <li>
+                            <LocalizedClientLink
+                              href="/entrar"
+                              className="block px-6 py-4 text-lg font-bold uppercase tracking-wider text-[#010204] hover:bg-[#FFCB98]/30 transition-colors"
+                              onClick={close}
+                              data-testid="entrar-link"
+                            >
+                              Entrar
+                            </LocalizedClientLink>
+                          </li>
+                        )}
                       </ul>
                     </div>
 
