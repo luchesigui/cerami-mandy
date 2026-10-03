@@ -7,8 +7,27 @@ import "styles/globals.css"
 
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseURL()),
+  title: {
+    default: "Cerami Mandy | Peças de cerâmica com cara, alma e rostinho",
+    template: "%s | Cerami Mandy",
+  },
   description:
     "Canecas únicas, cheias de personalidade e feitas 100% à mão por Amanda Yoshiizumi. Arte em cerâmica para quem quer transformar a hora do café e já não tem paciência para louça básica e sem graça.",
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: getBaseURL(),
+    siteName: "Cerami Mandy",
+    title: "Cerami Mandy | Peças de cerâmica com cara, alma e rostinho",
+    description:
+      "Canecas únicas, cheias de personalidade e feitas 100% à mão por Amanda Yoshiizumi. Arte em cerâmica para quem quer transformar a hora do café e já não tem paciência para louça básica e sem graça.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Cerami Mandy | Peças de cerâmica com cara, alma e rostinho",
+    description:
+      "Canecas únicas, cheias de personalidade e feitas 100% à mão por Amanda Yoshiizumi. Arte em cerâmica para quem quer transformar a hora do café e já não tem paciência para louça básica e sem graça.",
+  },
 }
 
 export default function RootLayout(props: { children: React.ReactNode }) {
