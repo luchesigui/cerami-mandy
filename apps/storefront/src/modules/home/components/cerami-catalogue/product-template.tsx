@@ -59,6 +59,7 @@ const fallbackRelated: RELATED_PRODUCTS_QUERY_RESULT = [
     inventory: 5,
     reserved: false,
     image: null,
+    hoverImage: null,
   },
   {
     _id: "demo-sim-2",
@@ -69,6 +70,7 @@ const fallbackRelated: RELATED_PRODUCTS_QUERY_RESULT = [
     inventory: 5,
     reserved: false,
     image: null,
+    hoverImage: null,
   },
   {
     _id: "demo-sim-3",
@@ -79,6 +81,7 @@ const fallbackRelated: RELATED_PRODUCTS_QUERY_RESULT = [
     inventory: 5,
     reserved: false,
     image: null,
+    hoverImage: null,
   },
 ]
 
@@ -103,10 +106,10 @@ const ProductTemplate = ({ product, related }: Props) => {
       <div className="flex justify-center bg-[#FCAB42] px-6 py-4 sm:py-5">
         <LocalizedClientLink href="/" aria-label="Cerami Mandy - início">
           <Image
-            src="/cerami/logo-horizontal.png"
+            src="/cerami/logo-wordmark.png"
             alt="Cerami Mandy"
-            width={734}
-            height={242}
+            width={248}
+            height={121}
             priority
             className="h-auto w-[160px] sm:w-[200px]"
           />
@@ -140,7 +143,7 @@ const ProductTemplate = ({ product, related }: Props) => {
           </div>
 
           <div className="mt-12 lg:mt-24">
-            {price && (
+            {!soldOut && price && (
               <div className="mb-2">
                 <span className="text-2xl font-bold text-[#13110C] sm:text-3xl">
                   {price}

@@ -16,7 +16,8 @@ export const AVAILABLE_PRODUCTS_QUERY = defineQuery(`
     badges,
     inventory,
     "reserved": ${RESERVED},
-    "image": images[0]
+    "image": images[0],
+    "hoverImage": images[1]
   }
 `)
 
@@ -29,7 +30,22 @@ export const SOLD_PRODUCTS_QUERY = defineQuery(`
     badges,
     inventory,
     "reserved": ${RESERVED},
-    "image": images[0]
+    "image": images[0],
+    "hoverImage": images[1]
+  }
+`)
+
+export const ALL_SOLD_PRODUCTS_QUERY = defineQuery(`
+  *[_type == "product" && status == "active" && defined(slug.current) && inventory == 0] | order(_updatedAt desc) {
+    _id,
+    title,
+    "slug": slug.current,
+    price,
+    badges,
+    inventory,
+    "reserved": ${RESERVED},
+    "image": images[0],
+    "hoverImage": images[1]
   }
 `)
 
@@ -60,7 +76,8 @@ export const RELATED_PRODUCTS_QUERY = defineQuery(`
     badges,
     inventory,
     "reserved": ${RESERVED},
-    "image": images[0]
+    "image": images[0],
+    "hoverImage": images[1]
   }
 `)
 

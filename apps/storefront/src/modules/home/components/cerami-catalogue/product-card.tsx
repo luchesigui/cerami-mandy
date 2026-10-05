@@ -13,7 +13,7 @@ type Badge = "destaque" | "novidade" | "esgotada" | "reservada"
 const badgeStyles: Record<Badge, { label: string; className: string }> = {
   destaque: { label: "Destaque", className: "bg-[#1767BD] text-white" },
   novidade: { label: "Novidade", className: "bg-[#BD5717] text-white" },
-  esgotada: { label: "Esgotada", className: "bg-[#BD172A] text-white" },
+  esgotada: { label: "Vendida", className: "bg-[#BD172A] text-white" },
   reservada: { label: "Reservada", className: "bg-[#EAB308] text-[#13110C]" },
 }
 
@@ -57,6 +57,8 @@ const ProductCard = ({
         (product.inventory !== null && product.inventory !== undefined && product.inventory <= 0)
   const price = formatPrice(product.price)
   const title = product.title ?? ""
+  const hoverImage =
+    !isUnavailable && product.hoverImage?.asset ? product.hoverImage : null
 
   const content = (
     <>
@@ -79,11 +81,21 @@ const ProductCard = ({
             alt={product.image.alt ?? title}
             fill
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-            className={`object-cover ease-out group-hover:scale-105 ${
+            className={`object-cover ease-out ${
               isUnavailable
                 ? "grayscale group-hover:grayscale-0 hover:grayscale-0 transition-all duration-500"
-                : "transition-transform duration-500"
+                : ""
             }`}
+          />
+        )}
+        {hoverImage && (
+          <Image
+            src={urlFor(hoverImage).width(900).height(1125).fit("crop").auto("format").url()}
+            alt=""
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            aria-hidden
+            className="object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 group-active:opacity-100"
           />
         )}
       </div>
@@ -94,7 +106,9 @@ const ProductCard = ({
         </span>
         <div className="mt-1 flex items-center justify-between gap-4 text-sm font-bold text-[#13110C]">
           <h3>{title}</h3>
-          {showPrice && price && <span className="shrink-0">{price}</span>}
+          {showPrice && price && (
+            <span className="shrink-0 bg-[#FCAB42] px-3 py-1">{price}</span>
+          )}
         </div>
       </div>
     </>

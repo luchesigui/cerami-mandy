@@ -18,8 +18,8 @@ const AddToBagButton = ({ productId, soldOut, reserved = false }: Props) => {
 
   if (soldOut) {
     return (
-      <button type="button" disabled title="Peça esgotada" className={buttonClassName}>
-        Esgotada
+      <button type="button" disabled title="Peça vendida" className={buttonClassName}>
+        Vendida
       </button>
     )
   }

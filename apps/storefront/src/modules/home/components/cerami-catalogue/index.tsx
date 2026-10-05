@@ -24,9 +24,19 @@ const CeramiCatalogue = async () => {
           ))}
         </ul>
       ) : (
-        <p className="text-center text-sm text-[#13110C]">
-          Novas peças em breve.
-        </p>
+        <div className="mx-auto max-w-md whitespace-pre-line text-center text-sm text-[#13110C]">
+          {
+            "Prateleiras limpas! 💛\n\nQuem pegou, pegou. Quem não pegou vai ter que esperar o forno abrir de novo!\n\nPara ver o que vem por aí e não ficar sem a sua na próxima, me segue lá no Instagram:\n\n"
+          }
+          <a
+            href="https://www.instagram.com/cerami.mandy/"
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold underline underline-offset-2"
+          >
+            👉 @cerami.mandy
+          </a>
+        </div>
       )}
     </section>
   )

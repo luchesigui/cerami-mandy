@@ -21,16 +21,15 @@ const SoldShowcase = async () => {
             key={product._id}
             product={product}
             showPrice={false}
-            linked={false}
           />
         ))}
       </ul>
       <div className="mt-12 flex justify-center">
         <LocalizedClientLink
-          href="/#catalogo"
+          href="/vendidas"
           className="rounded-full bg-[#FCAB42] px-9 py-4 text-sm font-bold uppercase tracking-wide text-[#13110C] transition-colors hover:bg-white"
         >
-          Ver peças disponíveis
+          Ver todas
         </LocalizedClientLink>
       </div>
     </section>
