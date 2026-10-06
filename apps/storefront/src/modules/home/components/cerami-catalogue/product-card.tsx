@@ -100,14 +100,14 @@ const ProductCard = ({
         )}
       </div>
 
-      <div className="bg-white px-5 py-4">
+      <div className="bg-[#FDF6E8] px-5 py-4">
         <span className="block text-[10px] font-bold uppercase tracking-wider text-[#FCAB42]">
           Feito a mão
         </span>
         <div className="mt-1 flex items-center justify-between gap-4 text-sm font-bold text-[#13110C]">
           <h3>{title}</h3>
           {showPrice && price && (
-            <span className="shrink-0 bg-[#FCAB42] px-3 py-1">{price}</span>
+            <span className="shrink-0">{price}</span>
           )}
         </div>
       </div>
