@@ -1,28 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 
 import { notifyOrderShipped } from "@lib/orders"
-import { safeEqual } from "@lib/safe-equal"
 
 export async function POST(req: NextRequest) {
-  const expectedSecret =
-    process.env.SANITY_WEBHOOK_SECRET || process.env.INFINITEPAY_WEBHOOK_SECRET
-
-  const searchSecret = req.nextUrl.searchParams.get("secret")
-  const headerSecret =
-    req.headers.get("x-sanity-secret") ||
-    req.headers.get("sanity-webhook-secret") ||
-    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
-
-  const providedSecret = searchSecret || headerSecret
-
-  if (
-    !expectedSecret ||
-    !providedSecret ||
-    !safeEqual(providedSecret, expectedSecret)
-  ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
   const body = (await req.json().catch(() => null)) as {
     _id?: string
     _type?: string
