@@ -101,6 +101,7 @@ const ORDER_FIELDS = `
   number,
   status,
   trackingCode,
+  shippedEmailSentAt,
   conflictNote,
   accessToken,
   customer,
@@ -117,6 +118,10 @@ const ORDER_FIELDS = `
 
 export const ORDER_BY_ID_QUERY = defineQuery(`
   *[_type == "order" && _id == $id][0] { ${ORDER_FIELDS} }
+`)
+
+export const ORDER_BY_NUMBER_QUERY = defineQuery(`
+  *[_type == "order" && number == $number][0] { ${ORDER_FIELDS} }
 `)
 
 export const ORDERS_BY_CUSTOMER_EMAIL_QUERY = defineQuery(`

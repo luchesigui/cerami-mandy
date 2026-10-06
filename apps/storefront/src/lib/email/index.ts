@@ -9,14 +9,21 @@ type SendEmailPayload = {
   html: string
 }
 
-async function sendEmail({ to, subject, html }: SendEmailPayload): Promise<boolean> {
+async function sendEmail({
+  to,
+  subject,
+  html,
+}: SendEmailPayload): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
-    console.info(`[email] RESEND_API_KEY not set. Skipped email to ${to}: "${subject}"`)
+    console.info(
+      `[email] RESEND_API_KEY not set. Skipped email to ${to}: "${subject}"`
+    )
     return false
   }
 
-  const from = process.env.EMAIL_FROM || "Cerami Mandy <pedidos@ceramimandy.com.br>"
+  const from =
+    process.env.EMAIL_FROM || "Cerami Mandy <pedidos@ceramimandy.com.br>"
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -104,7 +111,11 @@ export async function sendAuthCodeEmail(to: string, code: string) {
   })
 }
 
-export async function sendSignupVerificationEmail(to: string, code: string, name?: string) {
+export async function sendSignupVerificationEmail(
+  to: string,
+  code: string,
+  name?: string
+) {
   const formattedCode = `${code.slice(0, 3)} ${code.slice(3)}`
   const firstName = name?.trim().split(/\s+/)[0] || "Olá"
 
@@ -128,7 +139,9 @@ export async function sendSignupVerificationEmail(to: string, code: string, name
               Confirme seu e-mail
             </h1>
             <p style="margin: 0 0 28px 0; font-size: 15px; line-height: 1.6; color: #13110C;">
-              ${firstName ? `Olá, <strong>${firstName}</strong>! ` : ""}Use o código abaixo para confirmar seu e-mail e ativar sua conta na Cerami Mandy.
+              ${
+                firstName ? `Olá, <strong>${firstName}</strong>! ` : ""
+              }Use o código abaixo para confirmar seu e-mail e ativar sua conta na Cerami Mandy.
             </p>
 
             <div style="background-color: #FFF6E8; border: 1px solid #010204; border-radius: 16px; padding: 20px; margin-bottom: 24px; display: inline-block; min-width: 220px;">
@@ -161,7 +174,10 @@ export async function sendSignupVerificationEmail(to: string, code: string, name
   })
 }
 
-export async function sendOrderConfirmationEmail(order: Order, baseUrl: string) {
+export async function sendOrderConfirmationEmail(
+  order: Order,
+  baseUrl: string
+) {
   const email = order.customer?.email
   if (!email) return
 
@@ -190,8 +206,12 @@ export async function sendOrderConfirmationEmail(order: Order, baseUrl: string) 
     : order.address
     ? `
       <p style="margin: 0; color: #6b655b; font-size: 13px;">
-        ${order.address.street}, ${order.address.number}${order.address.complement ? ` - ${order.address.complement}` : ""}<br>
-        ${order.address.neighborhood} · ${order.address.city}/${order.address.state} · CEP ${order.address.cep}
+        ${order.address.street}, ${order.address.number}${
+        order.address.complement ? ` - ${order.address.complement}` : ""
+      }<br>
+        ${order.address.neighborhood} · ${order.address.city}/${
+        order.address.state
+      } · CEP ${order.address.cep}
       </p>
     `
     : ""
@@ -222,12 +242,18 @@ export async function sendOrderConfirmationEmail(order: Order, baseUrl: string) 
             <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 20px; border-top: 1px solid #010204;">
               ${itemsHtml}
               <tr>
-                <td style="padding: 8px 0; color: #6b655b; font-size: 13px;">Frete (${order.shipping?.company || "Entrega"})</td>
-                <td style="padding: 8px 0; text-align: right; color: #13110C; font-size: 13px;">${formatShippingPrice(order.shippingTotal ?? 0)}</td>
+                <td style="padding: 8px 0; color: #6b655b; font-size: 13px;">Frete (${
+                  order.shipping?.company || "Entrega"
+                })</td>
+                <td style="padding: 8px 0; text-align: right; color: #13110C; font-size: 13px;">${formatShippingPrice(
+                  order.shippingTotal ?? 0
+                )}</td>
               </tr>
               <tr>
                 <td style="padding: 12px 0; border-top: 1px solid #010204; font-size: 16px; font-weight: bold; color: #13110C;">Total</td>
-                <td style="padding: 12px 0; border-top: 1px solid #010204; text-align: right; font-size: 18px; font-weight: bold; color: #13110C;">${formatShippingPrice(order.total ?? 0)}</td>
+                <td style="padding: 12px 0; border-top: 1px solid #010204; text-align: right; font-size: 18px; font-weight: bold; color: #13110C;">${formatShippingPrice(
+                  order.total ?? 0
+                )}</td>
               </tr>
             </table>
 
@@ -259,6 +285,129 @@ export async function sendOrderConfirmationEmail(order: Order, baseUrl: string) 
   })
 }
 
+export async function sendOrderShippedEmail(order: Order, baseUrl: string) {
+  const email = order.customer?.email
+  if (!email) return false
+
+  const publicId = order._id.replace(/^order\./, "")
+  const orderUrl = `${baseUrl}/pedido/${publicId}?t=${order.accessToken}`
+  const firstName = order.customer?.name?.split(/\s+/)[0] || "Cliente"
+  const trackingUrl = order.trackingCode
+    ? `https://melhorrastreio.com.br/rastreio/${order.trackingCode}`
+    : null
+
+  const itemsHtml = (order.items ?? [])
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding: 10px 0; border-bottom: 1px solid #ede8df; color: #13110C; font-size: 14px;">
+          ${item.title}
+        </td>
+      </tr>
+    `
+    )
+    .join("")
+
+  const addressHtml = order.address
+    ? `
+      <p style="margin: 0; color: #6b655b; font-size: 13px;">
+        ${order.address.street}, ${order.address.number}${
+        order.address.complement ? ` - ${order.address.complement}` : ""
+      }<br>
+        ${order.address.neighborhood} · ${order.address.city}/${
+        order.address.state
+      } · CEP ${order.address.cep}
+      </p>
+    `
+    : ""
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="margin: 0; padding: 30px 15px; background-color: #F8F5EE; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #FFFDF9; border-radius: 24px; border: 1px solid #010204; overflow: hidden;">
+        <tr>
+          <td style="background-color: #13110C; padding: 24px 32px; text-align: center;">
+            <span style="color: #FCAB42; font-size: 20px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase;">CERAMI MANDY</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px;">
+            <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #6b655b;">
+              Pedido ${order.number}
+            </p>
+            <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: bold; color: #13110C;">
+              Sua cerâmica foi enviada! 📦
+            </h1>
+            <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #13110C;">
+              Olá, <strong>${firstName}</strong>! Sua peça exclusiva foi embalada com todo o carinho e já está a caminho do seu endereço.
+            </p>
+
+            ${
+              order.trackingCode
+                ? `
+            <div style="background-color: #FFF6E8; border: 1px solid #010204; border-radius: 16px; padding: 20px; margin-bottom: 24px; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #6b655b;">
+                Código de Rastreio (${
+                  order.shipping?.company || "Correios"
+                } - ${order.shipping?.name || "Entrega"})
+              </p>
+              <p style="margin: 0 0 16px 0; font-size: 22px; font-weight: bold; font-family: monospace; letter-spacing: 2px; color: #13110C;">
+                ${order.trackingCode}
+              </p>
+              ${
+                trackingUrl
+                  ? `
+              <a href="${trackingUrl}" target="_blank" style="display: inline-block; background-color: #13110C; color: #FFFDF9; padding: 12px 28px; border-radius: 999px; font-weight: bold; font-size: 13px; text-transform: uppercase; text-decoration: none;">
+                Rastrear encomenda ↗
+              </a>
+              `
+                  : ""
+              }
+            </div>
+            `
+                : ""
+            }
+
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 20px; border-top: 1px solid #010204;">
+              ${itemsHtml}
+            </table>
+
+            ${
+              addressHtml
+                ? `
+            <div style="background-color: #F8F5EE; border-radius: 16px; padding: 16px 20px; margin-bottom: 24px;">
+              <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #13110C;">Destino da Entrega</p>
+              ${addressHtml}
+            </div>
+            `
+                : ""
+            }
+
+            <div style="text-align: center; margin-bottom: 24px;">
+              <a href="${orderUrl}" target="_blank" style="display: inline-block; background-color: #FCAB42; color: #13110C; padding: 14px 32px; border-radius: 999px; font-weight: bold; font-size: 14px; text-transform: uppercase; text-decoration: none; border: 1px solid #010204;">
+                Acompanhar na loja
+              </a>
+            </div>
+
+            <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #8a8275; text-align: center;">
+              Cada peça é única, moldada e esmaltada à mão.<br>Ficamos muito felizes em fazer parte do seu espaço!
+            </p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  return sendEmail({
+    to: email,
+    subject: `Sua cerâmica foi enviada! 📦 · Pedido ${order.number}`,
+    html,
+  })
+}
+
 export async function sendStoreSaleNotificationEmail(order: Order) {
   const storeEmail = process.env.STORE_NOTIFICATION_EMAIL
   if (!storeEmail) return
@@ -286,15 +435,25 @@ export async function sendStoreSaleNotificationEmail(order: Order) {
       <hr>
       <h3>Entrega</h3>
       <p>
-        <strong>Opção:</strong> ${order.shipping?.company} (${order.shipping?.name})<br>
-        <strong>Valor:</strong> ${formatShippingPrice(order.shippingTotal ?? 0)}<br>
-        <strong>Endereço:</strong> ${order.address?.street}, ${order.address?.number} ${order.address?.complement || ""}, ${order.address?.neighborhood}, ${order.address?.city}/${order.address?.state} - CEP ${order.address?.cep}
+        <strong>Opção:</strong> ${order.shipping?.company} (${
+    order.shipping?.name
+  })<br>
+        <strong>Valor:</strong> ${formatShippingPrice(
+          order.shippingTotal ?? 0
+        )}<br>
+        <strong>Endereço:</strong> ${order.address?.street}, ${
+    order.address?.number
+  } ${order.address?.complement || ""}, ${order.address?.neighborhood}, ${
+    order.address?.city
+  }/${order.address?.state} - CEP ${order.address?.cep}
       </p>
       <hr>
       <h3>Peças Vendidas</h3>
       <p>${itemsList}</p>
       <p style="margin-top: 24px;">
-        <a href="https://ceramimandy.sanity.studio/structure/order;${order._id}" style="background-color: #13110C; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+        <a href="https://ceramimandy.sanity.studio/structure/order;${
+          order._id
+        }" style="background-color: #13110C; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">
           Abrir Pedido no Sanity Studio ↗
         </a>
       </p>
@@ -304,12 +463,17 @@ export async function sendStoreSaleNotificationEmail(order: Order) {
 
   await sendEmail({
     to: storeEmail,
-    subject: `✨ Nova venda! Pedido ${order.number} (${formatShippingPrice(order.total ?? 0)})`,
+    subject: `✨ Nova venda! Pedido ${order.number} (${formatShippingPrice(
+      order.total ?? 0
+    )})`,
     html,
   })
 }
 
-export async function sendPaymentConflictAlertEmail(order: Order, note?: string) {
+export async function sendPaymentConflictAlertEmail(
+  order: Order,
+  note?: string
+) {
   const storeEmail = process.env.STORE_NOTIFICATION_EMAIL
   if (!storeEmail) return
 
@@ -319,15 +483,25 @@ export async function sendPaymentConflictAlertEmail(order: Order, note?: string)
     <head><meta charset="utf-8"></head>
     <body style="font-family: sans-serif; padding: 20px; color: #13110C; background-color: #FFF5F5;">
       <h2 style="color: #C53030;">⚠️ AÇÃO NECESSÁRIA: Pagamento com Conflito!</h2>
-      <p>Um pagamento foi concluído para o pedido <strong>${order.number}</strong>, mas a reserva havia expirado e a peça já foi vendida ou reservada para outra pessoa.</p>
+      <p>Um pagamento foi concluído para o pedido <strong>${
+        order.number
+      }</strong>, mas a reserva havia expirado e a peça já foi vendida ou reservada para outra pessoa.</p>
       <div style="background: #fff; border-left: 4px solid #C53030; padding: 15px; margin: 15px 0;">
-        <p><strong>Detalhes do Conflito:</strong> ${note || order.conflictNote || "Peça não estava mais disponível."}</p>
-        <p><strong>Valor Pago:</strong> ${formatShippingPrice(order.total ?? 0)}</p>
-        <p><strong>Cliente:</strong> ${order.customer?.name} (${order.customer?.email}, ${order.customer?.phone})</p>
+        <p><strong>Detalhes do Conflito:</strong> ${
+          note || order.conflictNote || "Peça não estava mais disponível."
+        }</p>
+        <p><strong>Valor Pago:</strong> ${formatShippingPrice(
+          order.total ?? 0
+        )}</p>
+        <p><strong>Cliente:</strong> ${order.customer?.name} (${
+    order.customer?.email
+  }, ${order.customer?.phone})</p>
       </div>
       <p><strong>O que fazer:</strong> Acesse imediatamente o aplicativo da <strong>InfinitePay</strong> e faça o estorno/reembolso integral para o cliente.</p>
       <p style="margin-top: 20px;">
-        <a href="https://ceramimandy.sanity.studio/structure/order;${order._id}" style="background-color: #C53030; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+        <a href="https://ceramimandy.sanity.studio/structure/order;${
+          order._id
+        }" style="background-color: #C53030; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">
           Ver Pedido no Sanity Studio ↗
         </a>
       </p>

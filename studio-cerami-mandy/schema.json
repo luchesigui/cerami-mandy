@@ -331,6 +331,13 @@
         },
         "optional": true
       },
+      "shippedEmailSentAt": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "string"
+        },
+        "optional": true
+      },
       "customer": {
         "type": "objectAttribute",
         "value": {

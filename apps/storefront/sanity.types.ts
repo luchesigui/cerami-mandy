@@ -75,6 +75,7 @@ export type Order = {
     | "expirado"
     | "cancelado"
   trackingCode?: string
+  shippedEmailSentAt?: string
   customer?: {
     name?: string
     email?: string
@@ -564,7 +565,7 @@ export type BAG_PRODUCTS_QUERY_RESULT = Array<{
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: ORDER_BY_ID_QUERY
-// Query: *[_type == "order" && _id == $id][0] {   _id,  _rev,  number,  status,  trackingCode,  conflictNote,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt }
+// Query: *[_type == "order" && _id == $id][0] {   _id,  _rev,  number,  status,  trackingCode,  shippedEmailSentAt,  conflictNote,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt }
 export type ORDER_BY_ID_QUERY_RESULT = {
   _id: string
   _rev: string
@@ -579,6 +580,75 @@ export type ORDER_BY_ID_QUERY_RESULT = {
     | "pago"
     | null
   trackingCode: string | null
+  shippedEmailSentAt: string | null
+  conflictNote: string | null
+  accessToken: string | null
+  customer: {
+    name?: string
+    email?: string
+    phone?: string
+    cpf?: string
+  } | null
+  address: {
+    cep?: string
+    street?: string
+    number?: string
+    complement?: string
+    neighborhood?: string
+    city?: string
+    state?: string
+  } | null
+  items: Array<{
+    productId: string | null
+    title: string | null
+    price: number | null
+  }> | null
+  shipping: {
+    serviceId?: number
+    company?: string
+    name?: string
+    price?: number
+    deliveryDays?: number
+    melhorEnvioOrderId?: string
+    labelUrl?: string
+  } | null
+  subtotal: number | null
+  shippingTotal: number | null
+  total: number | null
+  payment: {
+    provider?: string
+    checkoutUrl?: string
+    expiresAt?: string
+    captureMethod?: string
+    installments?: number
+    paidAmount?: number
+    slug?: string
+    transactionNsu?: string
+    receiptUrl?: string
+    paidAt?: string
+  } | null
+  processedEvents: Array<string> | null
+  createdAt: string | null
+} | null
+
+// Source: ../apps/storefront/src/sanity/queries.ts
+// Variable: ORDER_BY_NUMBER_QUERY
+// Query: *[_type == "order" && number == $number][0] {   _id,  _rev,  number,  status,  trackingCode,  shippedEmailSentAt,  conflictNote,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt }
+export type ORDER_BY_NUMBER_QUERY_RESULT = {
+  _id: string
+  _rev: string
+  number: string | null
+  status:
+    | "aguardando_pagamento"
+    | "cancelado"
+    | "entregue"
+    | "enviado"
+    | "expirado"
+    | "pago_conflito"
+    | "pago"
+    | null
+  trackingCode: string | null
+  shippedEmailSentAt: string | null
   conflictNote: string | null
   accessToken: string | null
   customer: {
@@ -631,7 +701,7 @@ export type ORDER_BY_ID_QUERY_RESULT = {
 
 // Source: ../apps/storefront/src/sanity/queries.ts
 // Variable: ORDERS_BY_CUSTOMER_EMAIL_QUERY
-// Query: *[_type == "order" && lower(customer.email) == lower($email)] | order(createdAt desc) {      _id,  _rev,  number,  status,  trackingCode,  conflictNote,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt  }
+// Query: *[_type == "order" && lower(customer.email) == lower($email)] | order(createdAt desc) {      _id,  _rev,  number,  status,  trackingCode,  shippedEmailSentAt,  conflictNote,  accessToken,  customer,  address,  items[] { "productId": product._ref, title, price },  shipping,  subtotal,  shippingTotal,  total,  payment,  processedEvents,  createdAt  }
 export type ORDERS_BY_CUSTOMER_EMAIL_QUERY_RESULT = Array<{
   _id: string
   _rev: string
@@ -646,6 +716,7 @@ export type ORDERS_BY_CUSTOMER_EMAIL_QUERY_RESULT = Array<{
     | "pago"
     | null
   trackingCode: string | null
+  shippedEmailSentAt: string | null
   conflictNote: string | null
   accessToken: string | null
   customer: {
@@ -772,8 +843,9 @@ declare global {
     '\n  *[_type == "product" && status == "active" && slug.current == $slug][0] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    compareAtPrice,\n    badges,\n    images,\n    "categoryId": category._ref,\n    description,\n    "plainDescription": pt::text(description),\n    details,\n    inventory,\n    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())\n  }\n': PRODUCT_BY_SLUG_QUERY_RESULT
     '\n  *[_type == "product" && defined(slug.current) && status == "active" && inventory > 0 && _id != $id] | score(category._ref == $categoryId) | order(_score desc, _createdAt desc) [0...3] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    badges,\n    inventory,\n    "reserved": defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    "image": images[0],\n    "hoverImage": images[1]\n  }\n': RELATED_PRODUCTS_QUERY_RESULT
     '\n  *[_type == "product" && _id in $ids] {\n    _id,\n    title,\n    "slug": slug.current,\n    price,\n    "image": images[0],\n    "available": status == "active" && inventory > 0 && !(defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now())),\n    "reserved": status == "active" && inventory > 0 && defined(reservedUntil) && dateTime(reservedUntil) > dateTime(now()),\n    shipping,\n    _rev\n  }\n': BAG_PRODUCTS_QUERY_RESULT
-    '\n  *[_type == "order" && _id == $id][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_ID_QUERY_RESULT
-    '\n  *[_type == "order" && lower(customer.email) == lower($email)] | order(createdAt desc) {\n    \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n\n  }\n': ORDERS_BY_CUSTOMER_EMAIL_QUERY_RESULT
+    '\n  *[_type == "order" && _id == $id][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  shippedEmailSentAt,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_ID_QUERY_RESULT
+    '\n  *[_type == "order" && number == $number][0] { \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  shippedEmailSentAt,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n }\n': ORDER_BY_NUMBER_QUERY_RESULT
+    '\n  *[_type == "order" && lower(customer.email) == lower($email)] | order(createdAt desc) {\n    \n  _id,\n  _rev,\n  number,\n  status,\n  trackingCode,\n  shippedEmailSentAt,\n  conflictNote,\n  accessToken,\n  customer,\n  address,\n  items[] { "productId": product._ref, title, price },\n  shipping,\n  subtotal,\n  shippingTotal,\n  total,\n  payment,\n  processedEvents,\n  createdAt\n\n  }\n': ORDERS_BY_CUSTOMER_EMAIL_QUERY_RESULT
     '\n  *[_type == "customer" && lower(email) == lower($email)][0] {\n    _id,\n    name,\n    email,\n    phone,\n    cpf,\n    address,\n    "hasPassword": defined(passwordHash),\n    createdAt,\n    updatedAt\n  }\n': CUSTOMER_BY_EMAIL_QUERY_RESULT
     '\n  *[_type == "customer" && _id == $id][0] {\n    _id,\n    name,\n    email,\n    phone,\n    cpf,\n    address,\n    "hasPassword": defined(passwordHash),\n    createdAt,\n    updatedAt\n  }\n': CUSTOMER_BY_ID_QUERY_RESULT
     '\n  *[_type == "customer" && lower(email) == lower($email)][0] {\n    _id,\n    name,\n    email,\n    passwordHash\n  }\n': CUSTOMER_AUTH_BY_EMAIL_QUERY_RESULT

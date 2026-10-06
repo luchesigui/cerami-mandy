@@ -1,4 +1,11 @@
-import "dotenv/config"
+import fs from "node:fs"
+import path from "node:path"
+
+const envPath = path.resolve(process.cwd(), ".env.local")
+const proc = process as unknown as { loadEnvFile?: (path?: string) => void }
+if (fs.existsSync(envPath) && typeof proc.loadEnvFile === "function") {
+  proc.loadEnvFile(envPath)
+}
 
 import { writeClient } from "../src/sanity/write-client"
 import { ORDER_BY_ID_QUERY } from "../src/sanity/queries"

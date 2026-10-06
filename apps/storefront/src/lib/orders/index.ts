@@ -19,6 +19,7 @@ import { safeEqual } from "@lib/safe-equal"
 import { getOrCreateCustomer } from "@lib/auth/customer"
 import {
   sendOrderConfirmationEmail,
+  sendOrderShippedEmail,
   sendPaymentConflictAlertEmail,
   sendStoreSaleNotificationEmail,
 } from "@lib/email"
@@ -39,6 +40,7 @@ import {
 import {
   BAG_PRODUCTS_QUERY,
   ORDER_BY_ID_QUERY,
+  ORDER_BY_NUMBER_QUERY,
 } from "@/sanity/queries"
 import { serverClient } from "@/sanity/server-client"
 import { writeClient } from "@/sanity/write-client"
@@ -54,10 +56,7 @@ const COUNTER_ID = "order.counter"
 const FIRST_ORDER_NUMBER = 1001
 
 export class OrderError extends Error {
-  constructor(
-    message: string,
-    public status: number
-  ) {
+  constructor(message: string, public status: number) {
     super(message)
   }
 }
@@ -196,7 +195,12 @@ export async function createOrder(input: CheckoutInput) {
       widthCm: shipping.widthCm,
       lengthCm: shipping.lengthCm,
     })
-    return { id, rev: product._rev, title: product.title ?? "", price: product.price }
+    return {
+      id,
+      rev: product._rev,
+      title: product.title ?? "",
+      price: product.price,
+    }
   })
 
   let shippingOption: ShippingOption | undefined
@@ -204,18 +208,27 @@ export async function createOrder(input: CheckoutInput) {
     shippingOption = LOCAL_PICKUP_OPTION
   } else {
     try {
-      const options = await quoteShipping({ toCep: input.address.cep, packages })
+      const options = await quoteShipping({
+        toCep: input.address.cep,
+        packages,
+      })
       shippingOption = options.find((o) => o.id === input.shippingServiceId)
     } catch (err) {
       if (err instanceof ShippingQuoteError) {
         console.error("[checkout] shipping quote failed:", err.message)
-        throw new OrderError("Não foi possível confirmar o frete. Tente novamente.", 502)
+        throw new OrderError(
+          "Não foi possível confirmar o frete. Tente novamente.",
+          502
+        )
       }
       throw err
     }
   }
   if (!shippingOption) {
-    throw new OrderError("O frete mudou. Escolha a opção de entrega de novo.", 409)
+    throw new OrderError(
+      "O frete mudou. Escolha a opção de entrega de novo.",
+      409
+    )
   }
 
   const subtotal = items.reduce((sum, item) => sum + item.price, 0)
@@ -267,7 +280,9 @@ export async function createOrder(input: CheckoutInput) {
     )
     const draftId = `drafts.${item.id}`
     if (drafts.has(draftId)) {
-      tx.patch(draftId, (patch) => patch.set({ reservedUntil, reservedBy: orderId }))
+      tx.patch(draftId, (patch) =>
+        patch.set({ reservedUntil, reservedBy: orderId })
+      )
     }
   }
 
@@ -275,7 +290,10 @@ export async function createOrder(input: CheckoutInput) {
     await tx.commit()
   } catch (err) {
     console.error("[checkout] reservation failed:", (err as Error).message)
-    throw new OrderError("Uma das peças acabou de ser reservada por outra pessoa.", 409)
+    throw new OrderError(
+      "Uma das peças acabou de ser reservada por outra pessoa.",
+      409
+    )
   }
 
   try {
@@ -321,7 +339,11 @@ export async function createOrder(input: CheckoutInput) {
     await writeClient
       .patch(orderId)
       .set({
-        payment: { provider: "infinitepay", checkoutUrl, expiresAt: reservedUntil },
+        payment: {
+          provider: "infinitepay",
+          checkoutUrl,
+          expiresAt: reservedUntil,
+        },
       })
       .commit()
 
@@ -332,12 +354,17 @@ export async function createOrder(input: CheckoutInput) {
       phone: maskPhone(input.customer.phone),
       cpf: maskCpf(input.customer.cpf),
       address: input.address,
-    }).catch((err) => console.error("[checkout] failed to create/update customer:", err))
+    }).catch((err) =>
+      console.error("[checkout] failed to create/update customer:", err)
+    )
   } catch (err) {
     console.error("[checkout] payment link failed:", (err as Error).message)
     await closeOrder(orderId, "cancelado")
     if (err instanceof PaymentProviderError) {
-      throw new OrderError("Não foi possível gerar o pagamento agora. Tente novamente.", 502)
+      throw new OrderError(
+        "Não foi possível gerar o pagamento agora. Tente novamente.",
+        502
+      )
     }
     throw err
   }
@@ -395,7 +422,13 @@ async function markOrderPaid(orderId: string, details: PaymentDetails) {
     item.productId ? [item.productId] : []
   )
   const products = await writeClient.fetch<
-    { _id: string; title?: string; inventory?: number; reservedBy?: string; reservedUntil?: string }[]
+    {
+      _id: string
+      title?: string
+      inventory?: number
+      reservedBy?: string
+      reservedUntil?: string
+    }[]
   >(`*[_id in $ids]{ _id, title, inventory, reservedBy, reservedUntil }`, {
     ids: productIds,
   })
@@ -445,14 +478,18 @@ async function markOrderPaid(orderId: string, details: PaymentDetails) {
     for (const id of [...productIds, ...productIds.map((p) => `drafts.${p}`)]) {
       if (id.startsWith("drafts.") && !drafts.has(id)) continue
       tx.patch(id, (patch) =>
-        patch.set({ inventory: 0, soldAt: paidAt }).unset(["reservedUntil", "reservedBy"])
+        patch
+          .set({ inventory: 0, soldAt: paidAt })
+          .unset(["reservedUntil", "reservedBy"])
       )
     }
   }
 
   await tx.commit()
   console.info(
-    `[orders] ${order.number} ${conflicting.length ? "paid with conflict" : "paid"}`
+    `[orders] ${order.number} ${
+      conflicting.length ? "paid with conflict" : "paid"
+    }`
   )
 
   const updatedOrder = await getOrder(orderId)
@@ -472,7 +509,10 @@ async function markOrderPaid(orderId: string, details: PaymentDetails) {
       sendStoreSaleNotificationEmail(updatedOrder).catch((err) =>
         console.error("[orders] store sale notification email failed:", err)
       )
-      if (updatedOrder.shipping?.serviceId && updatedOrder.shipping.serviceId > 0) {
+      if (
+        updatedOrder.shipping?.serviceId &&
+        updatedOrder.shipping.serviceId > 0
+      ) {
         generateShipmentForOrder(updatedOrder).catch((err) =>
           console.error("[orders] automatic shipment generation failed:", err)
         )
@@ -645,23 +685,120 @@ export function toPublicOrder(order: Order) {
     customerName: order.customer?.name ?? "",
     email: order.customer?.email ?? "",
     address: order.address,
-    items: (order.items ?? []).map((item) => ({ title: item.title, price: item.price })),
+    items: (order.items ?? []).map((item) => ({
+      title: item.title,
+      price: item.price,
+    })),
     shipping: order.shipping,
     subtotal: order.subtotal,
     shippingTotal: order.shippingTotal,
     total: order.total,
     expiresAt:
-      order.status === "aguardando_pagamento" ? order.payment?.expiresAt ?? null : null,
-    payment:
-      order.payment?.paidAt
-        ? {
-            captureMethod: order.payment.captureMethod ?? "",
-            installments: order.payment.installments ?? 1,
-            receiptUrl: order.payment.receiptUrl ?? null,
-          }
+      order.status === "aguardando_pagamento"
+        ? order.payment?.expiresAt ?? null
         : null,
+    payment: order.payment?.paidAt
+      ? {
+          captureMethod: order.payment.captureMethod ?? "",
+          installments: order.payment.installments ?? 1,
+          receiptUrl: order.payment.receiptUrl ?? null,
+        }
+      : null,
     createdAt: order.createdAt ?? null,
   }
 }
 
 export type PublicOrder = ReturnType<typeof toPublicOrder>
+
+export async function notifyOrderShipped(
+  orderIdOrNumber: string,
+  options?: { force?: boolean; toEmail?: string }
+): Promise<{ success: boolean; message: string; order?: Order }> {
+  let order: Order | null = null
+  if (orderIdOrNumber.startsWith("order.")) {
+    order = await writeClient.fetch(ORDER_BY_ID_QUERY, { id: orderIdOrNumber })
+  } else if (orderIdOrNumber.startsWith("CM-")) {
+    order = await writeClient.fetch(ORDER_BY_NUMBER_QUERY, {
+      number: orderIdOrNumber,
+    })
+  } else {
+    order = await writeClient.fetch(ORDER_BY_ID_QUERY, {
+      id: `order.${orderIdOrNumber}`,
+    })
+  }
+
+  if (!order) {
+    return {
+      success: false,
+      message: `Pedido "${orderIdOrNumber}" não encontrado.`,
+    }
+  }
+
+  const recipientEmail = options?.toEmail || order.customer?.email
+  if (!recipientEmail) {
+    return {
+      success: false,
+      message: `Pedido ${order.number} não possui e-mail de destinatário válido.`,
+    }
+  }
+
+  if (order.status !== "enviado") {
+    return {
+      success: false,
+      message: `Pedido ${order.number} não está marcado como "enviado" (status atual: ${order.status}).`,
+    }
+  }
+
+  if (!order.trackingCode) {
+    return {
+      success: false,
+      message: `Pedido ${order.number} não possui código de rastreio preenchido.`,
+    }
+  }
+
+  if (!options?.toEmail && order.shippedEmailSentAt && !options?.force) {
+    return {
+      success: false,
+      message: `E-mail de envio já foi disparado anteriormente para o pedido ${order.number} em ${order.shippedEmailSentAt}.`,
+      order,
+    }
+  }
+
+  const orderToSend: Order = options?.toEmail
+    ? {
+        ...order,
+        customer: order.customer
+          ? { ...order.customer, email: options.toEmail }
+          : { name: "Teste", email: options.toEmail, phone: "", cpf: "" },
+      }
+    : order
+
+  const baseUrl = getSiteUrl()
+  const sent = await sendOrderShippedEmail(orderToSend, baseUrl)
+  if (!sent) {
+    return {
+      success: false,
+      message: `Falha ao enviar e-mail para ${recipientEmail}. Verifique a configuração do Resend (RESEND_API_KEY).`,
+    }
+  }
+
+  if (!options?.toEmail) {
+    const shippedEmailSentAt = new Date().toISOString()
+    await writeClient.patch(order._id).set({ shippedEmailSentAt }).commit()
+    order = { ...order, shippedEmailSentAt }
+  }
+
+  console.info(
+    `[orders] shipped notification email sent for order ${
+      order.number
+    } to ${recipientEmail}${options?.toEmail ? " (test email)" : ""}`
+  )
+
+  return {
+    success: true,
+    message: options?.toEmail
+      ? `E-mail de teste disparado com sucesso para ${options.toEmail}!`
+      : `E-mail de envio disparado com sucesso para ${order.customer?.email}!`,
+    order,
+  }
+}

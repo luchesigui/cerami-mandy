@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start -p 8000",
     "lint": "next lint",
-    "shipment": "tsx scripts/generate-order-shipment.ts",
+    "shipment": "node --conditions react-server --import tsx scripts/generate-order-shipment.ts",
+    "notify-shipped": "node --conditions react-server --import tsx scripts/send-order-shipped-email.ts",
     "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
